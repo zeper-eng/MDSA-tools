@@ -20,40 +20,9 @@ Systems_Analyzer = systems_analysis(all_systems)
 #Trying out our new MDCircos visualizations#
 ############################################
 PCA_ranked_weights=Systems_Analyzer.create_PCA_ranked_weights()
-
-print(PCA_ranked_weights)
-
-def extract_properties_from_table(pca_table):
-    comps = pca_table['Comparisons'].astype(str)
-
-    # split stack and clean
-    sides = comps.str.split('-', n=1, expand=True)
-    residues = (sides.stack()
-                      .str.strip()
-                      .dropna()
-                      .unique())
-
-    # arc ids are strings
-    residues = [str(x) for x in residues]
-
-    PC1_weight_dict = pca_table.set_index('Comparisons')['PC1_magnitude'].to_dict()
-    PC2_weight_dict = pca_table.set_index('Comparisons')['PC2_magnitude'].to_dict()
-    return residues, PC1_weight_dict, PC2_weight_dict
-  
-
-
-res_indexes,PC1_magnitude_dict,PC2_magnitude_dict = extract_properties_from_table(PCA_ranked_weights)
-
-
-from utilities.Viz import mdcircos_graph,make_MDCircos_object
-
-pc1_circos_object=make_MDCircos_object(res_indexes)
-pc2_circos_object=make_MDCircos_object(res_indexes)
-
-# This is a general use case
-mdcircos_graph(pc1_circos_object,PC1_magnitude_dict,'/Users/luis/Desktop/workspacetwo/test_output/circos/PC1_magnitudeviz')
-mdcircos_graph(pc2_circos_object,PC2_magnitude_dict,'/Users/luis/Desktop/workspacetwo/test_output/circos/PC2_magnitudeviz')
-
+from utilities.Viz import create_MDcircos_from_weightsdf
+create_MDcircos_from_weightsdf(PCA_ranked_weights)
+os._exit(0)
 '''
 
 The above is a general use case but, since we have a clear division of our two systems across the midpoint
@@ -62,6 +31,8 @@ as well as visualize the positive weightings by themselves. This is why the Circ
 min max scaling even tho the magnitudes are technically supposed to add up to 1 i.e. already scaled!
 
 '''
+
+from utilities.Viz import mdcircos_graph,make_MDCircos_object
 
 PC1_magnitudes=PCA_ranked_weights[['Comparisons','PC1_magnitude','PC1_Weights']]
 
