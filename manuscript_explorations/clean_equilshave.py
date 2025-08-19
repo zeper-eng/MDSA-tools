@@ -24,16 +24,14 @@ def rmsd_from_centers(X, labels, centers):
 redone_CCU_GCU_fulltraj=np.load('/Users/luis/Downloads/redone_unrestrained_CCU_GCU_Trajectory_array.npy',allow_pickle=True)
 redone_CCU_CGU_fulltraj=np.load('/Users/luis/Downloads/redone_unrestrained_CCU_CGU_Trajectory_array.npy',allow_pickle=True)
 
+from mdsa_tools.Viz import visualize_reduction
+persys_frame_list=((([80] * 20) + ([160] * 10))*2)
+
 #For the paper we move forward with systems representations
 all_systems=[redone_CCU_GCU_fulltraj,redone_CCU_CGU_fulltraj]
 Systems_Analyzer = systems_analysis(all_systems)
 X_pca,_,_=Systems_Analyzer.reduce_systems_representations(method='PCA',n_components=2) #PCA
-optimal_k_silhouette_labels_GCUresults,optimal_k_elbow_labels_GCUresults,centers_sillohuette_GCUresults,centers_elbow_GCUresults=Systems_Analyzer.cluster_system_level(data=X_pca[0:3200,:],outfile_path='/Users/luis/Desktop/workspacetwo/manuscript_explorations//embeddingspace_kmeanslabels/GCU')
-optimal_k_silhouette_labels_CGUresults,optimal_k_elbow_labels_CGUresults,centers_sillohuette_CGUresults,centers_elbow_CGUresults=Systems_Analyzer.cluster_system_level(data=X_pca[3200:,:],outfile_path='/Users/luis/Desktop/workspacetwo/manuscript_explorations//embeddingspace_kmeanslabels/CGU')
-
-from mdsa_tools.Viz import visualize_reduction
-persys_frame_list=((([80] * 20) + ([160] * 10))*2)
-onesys_frame_list=((([80] * 20) + ([160] * 10)))
+candidate_states_per_system=Systems_Analyzer.cluster_embeddingspace()
 
 
 
