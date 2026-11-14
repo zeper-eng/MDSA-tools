@@ -11,8 +11,8 @@ those in replicate maps instead of k-means cluster assignments.
 See Also
 --------
 mdsa_tools.Viz.visualize_reduction : Plot PCA/UMAP embeddings.
-mdsa_tools.Data_gen_hbond.create_system_representations : Build residue–residue H-bond adjacency matrices.
-numpy.linalg.svd : Linear algebra used under the hood.
+mdsa_tools.Data_gen_hbond.TrajectoryProcessor.create_system_representations : Build residue–residue H-bond adjacency matrices.
+sklearn.decomposition.PCA : Principal component analysis.
 '''
 from mdsa_tools.Data_gen_hbond import TrajectoryProcessor
 import numpy as np
@@ -30,34 +30,42 @@ class systems_analysis:
     Container for systems-level analyses on residue–residue adjacency matrices.
 
     This class assumes each “system representation” is a 3D array with shape
-    ``(n_frames, n_residues, n_residues)`` where a single frame contains a
+    ``(n_frames, n_residues+1, n_residues+1)`` where a single frame contains a
     residue×residue adjacency matrix (e.g., H-bond counts/weights). Many methods
     operate on a *feature matrix* constructed by flattening/stacking per-frame
-    upper triangles.
+    upper triangles, or supplied directly as a precomputed feature matrix.
 
     Parameters
     ----------
-    systems_representations : list of np.ndarray
+    systems_representations : list of np.ndarray, optional
         ``[array_1, ..., array_m]``, each of shape
-        ``(n_frames, n_residues, n_residues)``. The only permitted difference
+        ``(n_frames, n_residues+1, n_residues+1)``. The only permitted difference
         across arrays is ``n_frames``; all systems should share the same residue
         dimension. Index metadata are expected in row/column 0.
     replicate_distribution : array-like of int
         Optional labels or indices describing how frames are distributed
         across replicates/systems. If ``None``, defaults to
-        ``np.arange(0, systems_representations[0].shape[0])``.
+        ``np.arange(0, systems_representations[0].shape[0])``, or all sample
+        indices when a precomputed feature matrix is supplied.
+    precomputed_feature_matrix : np.ndarray, optional
+        Feature matrix of shape ``(n_samples, n_features)`` to use directly.
+    res_indexes_for_precomputedmatrix : array-like of int, optional
+        Residue indices in the order used to construct the precomputed features.
 
     Attributes
     ----------
     num_systems : int
         Number of systems provided (``len(systems_representations)``).
+        Set when ``systems_representations`` is supplied.
     systems_representations : list of np.ndarray
-        Original input, retained for convenience.
+        Original system arrays, retained when supplied.
     indexes : np.ndarray
-        Derived from ``systems_representations[0][0, 0, 1:]``. These are used to
-        label residue–residue comparisons when generating feature names.
-    feature_matrix : np.ndarray
-        Cached 2D feature matrix produced by ``replicates_to_feature_matrix``.
+        Derived from ``systems_representations[0][0, 0, 1:]``, or supplied through
+        ``res_indexes_for_precomputedmatrix``. These label residue–residue
+        comparisons when generating feature names.
+    feature_matrix : np.ndarray or None
+        Supplied precomputed matrix or cached 2D matrix produced by
+        ``replicates_to_feature_matrix``. Initially ``None`` if neither is set.
     replicate_distribution : np.ndarray
         Distribution vector set from the provided argument or default.
 
@@ -78,12 +86,15 @@ class systems_analysis:
 
         Parameters
         ----------
-        systems_representations : list of np.ndarray
-            List of system arrays, each shaped ``(n_frames, n_residues, n_residues)``.
+        systems_representations : list of np.ndarray, optional
+            List of system arrays, each shaped ``(n_frames, n_residues+1, n_residues+1)``,
+            including a header row and column.
         replicate_distribution : array-like of int
             Optional frame-level indexing/labels for downstream bookkeeping.
-        Precomputed_feature_matrix : array-like of int
-            Optional frame-level indexing/labels for downstream bookkeeping.
+        precomputed_feature_matrix : np.ndarray, optional
+            Feature matrix of shape ``(n_samples, n_features)`` to use directly.
+        res_indexes_for_precomputedmatrix : array-like of int, optional
+            Residue indices in the order used to construct the precomputed features.
 
         Returns
         -------
@@ -127,13 +138,13 @@ class systems_analysis:
         ----------
         arrays : list of np.ndarray
             ``[array_1, ..., array_m]`` where each array has shape
-            ``(n_frames, n_residues, n_residues)``. If ``None``, uses
+            ``(n_frames, n_residues+1, n_residues+1)``. If ``None``, uses
             ``self.systems_representations``.
             The only axis allowed to differ across arrays is ``n_frames``.
 
         Returns
         -------
-        np.ndarray
+        np.ndarray, dtype=float32
             Shape=``(sum(n_frames), n_features)``, where ``n_features`` equals the
             number of unique residue–residue pairs from the *upper triangle*
             (excluding the diagonal) of the per-frame matrix. Each row corresponds
@@ -148,7 +159,7 @@ class systems_analysis:
 
         Examples
         --------
-        >>> arrays = [sys1, sys2]  # each (n_frames, n_res, n_res)
+        >>> arrays = [sys1, sys2]  # each (n_frames, n_res+1, n_res+1)
         >>> X = sa.replicates_to_feature_matrix(arrays)  # doctest: +SKIP
         """
         arrays = arrays if arrays is not None else self.systems_representations
@@ -187,11 +198,13 @@ class systems_analysis:
         residues : list of int
             Residue indices to retain (e.g., a surface or motif). All pairwise
             combinations among these residues are used.
-        systems_array : np.ndarray, shape=``(n_frames, n_res, n_res)``
-            Averaged array or a single 3D trajectory array. If ``None``, all
+        systems_array : np.ndarray, shape=``(n_frames, n_res+1, n_res+1)``
+            A single 3D trajectory array. If ``None``, all
             systems in ``self.systems_representations`` are concatenated.
         mode : {'sum','average'}, default='sum'
-            Aggregation across the upper triangle for each frame.
+            Sum the upper triangle for each frame. 'average' divides this sum
+            by the square of the number of retained residues, including the
+            zeroed diagonal and lower triangle in the mean.
 
         Returns
         -------
@@ -247,14 +260,15 @@ class systems_analysis:
 
         Parameters
         ----------
-        outfile_path : str or pathlib.Path
-            Directory where per-K label arrays are saved (via ``np.save``) when
-            sweeping K (i.e., when ``k is None``). One file is written per value of K.
-            If ``None``, nothing is written to disk. Default is ``None``.
+        outfile_path : str or None
+            Prefix for per-K label arrays (via ``np.save``) and selection plots
+            when sweeping K (i.e., when ``k is None``). Include a trailing path
+            separator to save inside a directory. If ``None``, nothing is written
+            to disk. Default is ``None``.
         max_clusters : int
             Upper bound on the number of clusters to consider when sweeping K.
             Effective only when ``k is None``. The exact K range is determined by
-            :meth:`perform_clust_opt` (typically ``2..max_clusters`` inclusive).
+            :meth:`perform_clust_opt` (``2..max_clusters`` inclusive).
             Default is ``10``.
         data : array-like of shape=(n_samples, n_features)
             Feature matrix to cluster. If ``None``, uses ``self.feature_matrix``.
@@ -301,7 +315,7 @@ class systems_analysis:
         Sweep K (saving per-K labels):
 
         >>> sil_labels, elbow_labels, sil_centers, elbow_centers = \
-        ...     obj.perform_kmeans(outfile_path="results/kmeans", max_clusters=12)
+        ...     obj.perform_kmeans(outfile_path="results/kmeans/", max_clusters=12)
         '''
         
         max_clusters = max_clusters if max_clusters is not None else 10
@@ -332,8 +346,8 @@ class systems_analysis:
         Parameters
         ----------
         feature_matrix : array-like of shape=(n_samples, n_features)
-            Matrix to reduce. If omitted, uses ``self.feature_matrix``; if that is
-            not set, calls ``replicates_to_feature_matrix()`` to build it.
+            Currently overridden by ``self.feature_matrix``. If that is not set,
+            calls ``replicates_to_feature_matrix()`` to build it.
         method : {'PCA', 'UMAP'}, default 'PCA'
             Dimensionality-reduction algorithm.
         n_components : int, default 2
@@ -404,7 +418,26 @@ class systems_analysis:
         '''
         (Deprecated) Cluster each system independently in a reduced embedding space.
 
-        ...
+        Parameters
+        ----------
+        reduced_coordinates : np.ndarray, shape=(n_samples, n_components)
+            Coordinates to cluster. If ``None``, computes a two-component PCA embedding.
+        outfile_path : str or None
+            Prefix for clustering output files. If ``None``, nothing is written.
+        num_systems : int
+            Number of consecutive groups to cluster. If ``None``, uses ``self.num_systems``.
+        val_metric : {'sillohuette', 'elbow'}, default='sillohuette'
+            Criterion used to select labels and centers for each group.
+
+        Returns
+        -------
+        list of tuple
+            One ``(labels, centers)`` tuple per group.
+
+        Notes
+        -----
+        Coordinates are split into approximately equal groups with ``np.array_split``;
+        the original system frame counts are not used.
         '''
         # IMPORTANT: If None, downstream won't save.
         outfile_path = outfile_path if outfile_path is not None else None
@@ -429,26 +462,28 @@ class systems_analysis:
     
     def autocorrelation_function(self,feature_space_coordinates=None,lags=None):
         '''
+        Compute Pearson autocorrelation over all features at each frame lag.
+
         Parameters
         ----------
-
-
+        feature_space_coordinates : np.ndarray, shape=(n_frames, n_features)
+            Per-frame feature rows. If ``None``, rebuilds ``self.feature_matrix``
+            with ``replicates_to_feature_matrix()``.
+        lags : iterable of int
+            Frame offsets to evaluate. Default ``[1, 2, 3, 4, 5]``.
 
         Returns
         -------
-
-
+        pandas.DataFrame
+            One row per lag with columns ``sig_r`` (significance flag), ``p``,
+            ``t``, ``df``, ``rcrit`` (absolute correlation threshold), and ``lags``.
 
         Notes
         -----
-
-
-
-        Examples
-        --------
-
-
-        
+        All paired feature values are pooled for each lag. The sample size is
+        ``(n_frames - lag) * n_features``; system or replicate boundaries are
+        not treated separately. Significance uses ``t_test_autocorrelation``
+        with its default alpha of 0.05.
         '''
         lags = lags if lags is not None else [1,2,3,4,5]
 
@@ -505,6 +540,29 @@ class systems_analysis:
 
     def t_test_autocorrelation(self,results=None,m=None,alpha=None):
         '''
+        Test Pearson correlations against zero with a two-sided t-test.
+
+        Parameters
+        ----------
+        results : np.ndarray
+            Correlation coefficient for each lag.
+        m : np.ndarray
+            Number of paired feature values used for each correlation.
+        alpha : float, default=0.05
+            Significance level for the two-sided test.
+
+        Returns
+        -------
+        sig_r : np.ndarray of bool
+            Whether each absolute correlation meets the critical threshold.
+        p : np.ndarray
+            Two-sided p-values.
+        t : np.ndarray
+            Test statistics.
+        degrees_freedom : np.ndarray
+            Degrees of freedom, ``m - 2``.
+        rcrit : np.ndarray
+            Critical absolute correlation thresholds.
         '''
         alpha=alpha if alpha is not None else .05
         
@@ -542,7 +600,8 @@ class systems_analysis:
         Returns
         -------
         float
-            Pearson correlation coefficient r in [-1, 1] between pdist(X) and pdist(Y).
+            Pearson correlation coefficient r in [-1, 1] between pdist(X) and pdist(Y),
+            or NaN if the denominator is zero.
 
         Notes
         -----
@@ -628,7 +687,8 @@ class systems_analysis:
         Parameters
         ----------
         feature_matrix : np.ndarray, shape=(n_samples, n_features)
-            If None, use self.feature_matrix (and build it if needed).
+            Matrix used for scoring. If None, use self.feature_matrix (and build it if needed).
+            Embeddings use self.feature_matrix through reduce_systems_representations.
         max_neighbors : int
             Exclusive upper bound for the neighbors sweep. Default 100.
         min_neighbors : int
@@ -645,13 +705,13 @@ class systems_analysis:
             - n_neighbors  (int)
             - min_dist     (float)
             - pearson_r    (float, rounded to 2 decimals)
-            - r01_for_bubbles (float in [0,100]): visual helper = 100*((r+1)/2)
+            - bubble_size (float): absolute Pearson r scaled across the sweep to [80, 400]
 
         Notes
         -----
         * UMAP embeddings depend on (n_neighbors, min_dist); we loop both.
         * Pearson is computed with pearson_sums_only (streaming, exact).
-        * r01_for_bubbles maps r∈[-1,1] -> [0,100] for bubble size/color.
+        * bubble_size uses the unrounded absolute correlations.
         '''
 
         feature_matrix=feature_matrix if feature_matrix is not None else self.feature_matrix
@@ -693,13 +753,14 @@ class systems_analysis:
     def perform_optimized_UMAP_local(self, feature_matrix=None,max_neighbors=None, min_neighbors=None, stepsize=None, min_dist_values=None,eval_n=None):
         '''
         Grid-search UMAP over n_neighbors and min_dist, and for each embedding
-        compute Pearson r between pdist(feature space) and pdist(embedding space).
+        compute neighborhood trustworthiness between feature and embedding space.
         Returns a tidy DataFrame for easy plotting (bubble chart etc.).
 
         Parameters
         ----------
         feature_matrix : np.ndarray, shape=(n_samples, n_features)
-            If None, use self.feature_matrix (and build it if needed).
+            Matrix used for scoring. If None, use self.feature_matrix.
+            Embeddings use self.feature_matrix through reduce_systems_representations.
         max_neighbors : int
             Exclusive upper bound for the neighbors sweep. Default 100.
         min_neighbors : int
@@ -708,6 +769,8 @@ class systems_analysis:
             Step between neighbor counts. Default 10 (i.e., 10, 20, 30, ...).
         min_dist_values : iterable of float
             Set of UMAP min_dist values to try. Default (0.1, 0.4, 0.7, 1.0).
+        eval_n : int
+            Number of neighbors used to evaluate trustworthiness. Default 15.
 
         Returns
         -------
@@ -715,14 +778,14 @@ class systems_analysis:
             Columns:
             - n_neighbors  (int)
             - min_dist     (float)
-            - pearson_r    (float, rounded to 2 decimals)
-            - r01_for_bubbles (float in [0,100]): visual helper = 100*((r+1)/2)
+            - trustworthiness score (float, rounded to 2 decimals)
+            - bubble_size (float): trustworthiness scaled across the sweep to [40, 400]
 
         Notes
         -----
         * UMAP embeddings depend on (n_neighbors, min_dist); we loop both.
-        * Pearson is computed with pearson_sums_only (streaming, exact).
-        * r01_for_bubbles maps r∈[-1,1] -> [0,100] for bubble size/color.
+        * Trustworthiness uses sklearn.manifold.trustworthiness with Euclidean distances.
+        * bubble_size uses the unrounded trustworthiness scores.
         '''
 
         feature_matrix=feature_matrix if feature_matrix is not None else self.feature_matrix
@@ -770,12 +833,12 @@ class systems_analysis:
         return df
 
     def create_PCA_ranked_weights(self,outfile_path=None, weights=None, indexes=None):
-        '''Create a ranked table of PCA feature weights for the first two principal components.
+        '''Create a table of PCA feature weights for the first two principal components.
 
         Parameters
         ----------
         outfile_path : str or pathlib.Path
-            Directory where outputs may be written. If ``None``, uses the current working directory.
+            Retained for compatibility; this method does not write files.
         weights : np.ndarray, shape== (n_components, n_features)
             PCA component loadings (rows = components, columns = features). If ``None``, this
             function calls ``reduce_systems_representations()`` to compute PCA (default n=2)
@@ -796,14 +859,13 @@ class systems_analysis:
             * ``PC2_Weights``     — raw loading for PC2 (float)
             * ``PC1_magnitude``   — (PC1_Weights)**2 (float)
             * ``PC2_magnitude``   — (PC2_Weights)**2 (float)
-            * ``PC1_mag_norm``    — min–max normalized PC1_magnitude to [0, 1] (float)  [*optional if postprocessed*]
-            * ``PC2_mag_norm``    — min–max normalized PC2_magnitude to [0, 1] (float)  [*optional if postprocessed*]
 
         Notes
         -----
         Only the upper triangle (excluding the diagonal) of the residue–residue matrix is used,
         so each row corresponds to a unique residue pair. The function assumes at least two
-        principal components are available.
+        principal components are available. Values are rounded to three decimals
+        and rows retain feature order.
 
         Examples
         --------
@@ -840,8 +902,7 @@ class systems_analysis:
         Parameters
         ----------
         centers : np.ndarray, shape== (n_clusters, n_features)
-            Cluster centers (e.g., from KMeans). If ``None`` (or if ``labels`` is
-            ``None``), centers and labels are obtained from ``perform_clust_opt()``.
+            Cluster centers (e.g., from KMeans). Supply centers and labels together.
         
         labels : array-like of int, shape=(n_samples,)
             Cluster assignment for each sample/frame. 
@@ -879,7 +940,7 @@ class systems_analysis:
         Examples
         --------
         >>> labels, centers = sa.perform_kmeans(k=2)
-        >>> df = sa.compute_cluster_assignment_schemas(centers, labels)
+        >>> df = sa.assignment_schemas(centers, labels)
         >>> df.sort_values(["centroid","count"], ascending=[True, False]) \
         ...   .groupby("centroid").head(20)  
         '''
@@ -924,8 +985,7 @@ class systems_analysis:
         Parameters
         ----------
         centers : np.ndarray, shape== (n_clusters, n_features)
-            Cluster centers (e.g., from KMeans). If ``None`` (or if ``labels`` is
-            ``None``), centers and labels are obtained from ``perform_clust_opt()``.
+            Cluster centers (e.g., from KMeans). Supply centers and labels together.
         
         labels : array-like of int, shape=(n_samples,)
             Cluster assignment for each sample/frame. 
@@ -954,12 +1014,12 @@ class systems_analysis:
 
         Notes
         -----
-        * Per-feature contributions are computed as ``(x_j - c_j)**2`` for each
-        feature ``j`` and assigned sample ``x`` relative to its centroid ``c``.
-        * The “dominant pair” for a sample is the feature index with the maximum
-        squared deviation (ties take the first occurrence although for our implementation use case
-        there was not much of an issue).
-  \
+        * Per-feature contributions are the squared distance to the second-nearest
+        centroid minus the squared distance to the assigned centroid.
+        * The “dominant pair” is the feature with the largest difference; ties take
+        the first occurrence. Labels are expected to identify the nearest centroid
+        and correspond to row indices in centers.
+
         Examples
         --------
         >>> labels, centers = sa.perform_kmeans(k=2)
@@ -1018,8 +1078,9 @@ class systems_analysis:
 
         Parameters
         ----------
-        outfile_path : str or pathlib.Path
-            If provided, per-K label arrays are saved via ``np.save`` as
+        outfile_path : str or None
+            Filename prefix for outputs; include a trailing path separator to save
+            inside a directory. Per-K label arrays are saved via ``np.save`` as
             ``"<outfile_path>kluster_labels_{K}clust.npy"`` and selection plots
             are delegated to ``mdsa_tools.Viz``. If ``None``, nothing is written
             and elbow selection falls back to a simple heuristic.
@@ -1055,8 +1116,9 @@ class systems_analysis:
         * Elbow choice:
             - If ``outfile_path`` is provided, the decision is delegated to
               ``mdsa_tools.Viz.plot_elbow_scores`` (with plotting).
-            - If not, and too few points exist to fit a curve, falls back to the
-              argmin of inertia over the available Ks.
+            - Without ``outfile_path``, selects the minimum inertia.
+            - With fewer than three inertia points, also selects the minimum inertia.
+            - When ``max_clusters == 3``, K=3 is excluded from the inertia candidates.
         * ``KMeans(init='random', n_init=K, random_state=0)`` is used for reproducibility.
         * The variable/name ``sillohuette`` is spelled as-is to preserve legacy usage.
 
@@ -1151,7 +1213,7 @@ class systems_analysis:
         Examples
         --------
         >>> X_pca, W, evr = sa.run_PCA(feature_matrix, 2)  # doctest: +SKIP
-        >>> X_pca.shape=                                    # doctest: +SKIP
+        >>> X_pca.shape                                     # doctest: +SKIP
         (feature_matrix.shape[0], 2)
         '''
 

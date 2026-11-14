@@ -2,15 +2,14 @@
 
 Use results of systems analysis to explore potential preferred structural conformations
 
-- Clustering PCA/UMAP embeddings at different target dimensions.
-- Pulling H-bond values via ``systems_analysis.extract_hbond_values()``
-    and using those in replicate maps instead of k-means labels.
-- Cohesion over time, transition matrices, implied timescales.
+- Evaluating PCA/UMAP clusters at different target dimensions.
+- Cohesion over time, using sliding and shrinking windows.
+- Transition matrices without cross-replicate jumps.
 
 
 See Also
 --------
-mdsa_tools.Cpptraj_import.cpptraj_hbond_import
+mdsa_tools.Analysis.systems_analysis
 
 '''
 
@@ -23,15 +22,14 @@ class subdomain_explorations:
     """
     Use results of systems analysis to explore potential preferred structural conformations
 
-    - Clustering PCA/UMAP embeddings at different target dimensions.
-    - Pulling H-bond values via ``systems_analysis.extract_hbond_values()``
-      and using those in replicate maps instead of k-means labels.
-    - Cohesion over time, transition matrices.
+    - Evaluating PCA/UMAP clusters at different target dimensions.
+    - Cohesion over time, using sliding and shrinking windows.
+    - Transition matrices without cross-replicate jumps.
 
     Attributes
     ----------
-    labels : array-like of int or None
-        Cluster labels per frame (0-based).
+    labels : np.ndarray of int or None
+        Cluster labels per frame (0-based). Transition matrices require consecutive state ids.
     centers : np.ndarray or None
         Cluster centers in the same space as reduced coordinates.
     reduced_coordinates : np.ndarray or None
@@ -64,7 +62,7 @@ class subdomain_explorations:
         ----------
         X : np.ndarray, shape (n_samples, n_dims), optional
             Points in embedding space (PCA/UMAP). Defaults to stored coordinates.
-        labels : array-like of int, shape (n_samples,), optional
+        labels : np.ndarray of int, shape (n_samples,), optional
             Cluster labels for each row of X. Defaults to stored labels.
         centers : np.ndarray, shape (n_states, n_dims), optional
             Cluster centers. Defaults to stored centers.
@@ -72,7 +70,7 @@ class subdomain_explorations:
         Returns
         -------
         np.ndarray of shape (n_present_states, 2)
-            Columns: (cluster_id, rmsd). Cluster ids as int, rmsd as float.
+            Columns: (cluster_id, rmsd), both stored as floats.
 
         Notes
         -----
@@ -104,9 +102,9 @@ class subdomain_explorations:
         """
         Fixed-size *sliding window* per replicate.
 
-        At window j, take a slice of length step_size from each replicate,
+        At window j, take up to step_size remaining frames from each replicate,
         concatenate, then compute per-cluster RMSD to centers for that slice.
-        Advance by step_size each step.
+        Advance by step_size for max(frame_scale) // step_size windows.
 
         Parameters
         ----------
@@ -122,7 +120,7 @@ class subdomain_explorations:
 
         Notes
         -----
-        - Replicates shorter than the current window contribute nothing.
+        - Replicates with no frames left at the window start contribute nothing.
         - Windows never cross replicate boundaries.
         - Handy for checking “settling”/drift of clusters over time.
         """
@@ -172,8 +170,8 @@ class subdomain_explorations:
         """
         *Shrinking-from-the-start* window (aka keep the tail).
 
-        At step j, drop the first creepingstart frames of each replicate and
-        use the rest.
+        At step j (1-based), drop the first (j - 1) * step_size frames of each
+        replicate and use the rest. The first window uses all frames.
 
         Parameters
         ----------
@@ -185,7 +183,7 @@ class subdomain_explorations:
         Returns
         -------
         pandas.DataFrame
-            Columns: ['cluster', 'rmsd', 'window'].
+            Columns: ['cluster', 'rmsd', 'window'] where window is 1-based.
 
         Notes
         -----
@@ -240,8 +238,8 @@ class subdomain_explorations:
 
         Parameters
         ----------
-        labels : array-like, optional
-            Override stored labels. Integer states per frame (0-based).
+        labels : np.ndarray of int, optional
+            Override stored labels. Integer states per frame, consecutive from 0.
         frame_list : list[int], optional
             Override stored frame_scale. Frames per replicate.
         lag : int, default 1
@@ -251,10 +249,11 @@ class subdomain_explorations:
         -------
         np.ndarray
             (n_states+1, n_states+1) with header row/col for state ids.
+            Also stored as self.transition_probability_matrix.
 
         Notes
         -----
-        - Rows with zero outgoing counts are all zeros.
+        - Probability rows with zero outgoing counts are all zeros, excluding the header.
         - Prints raw counts pre-normalization for sanity check.
         """
         if labels is None:
