@@ -4,8 +4,8 @@ The Visualization module stores all of the different operations for the various 
 It is not a larger object but a series of complimentary functions including helpers that make different color bars
 depending on values etc.
 
-For the most part we expect a max of around 256 bins but, if you have more bins in any labelling (colorcoding)of your graphs it auto switches
-to a continous colorbar and goes based on sample index.
+Colorbar behavior depends on the plotting function; see each function for the
+supported labels and colorbar options.
 
 
 
@@ -13,7 +13,7 @@ See Also
 --------
 mdsa_tools.Analysis : A lot of the results you will probably visualize
 
-mdsa_tools.Data_gen_hbond.create_system_representations : Build residue–residue H-bond adjacency matrices.
+mdsa_tools.Data_gen_hbond.TrajectoryProcessor.create_system_representations : Build residue–residue H-bond adjacency matrices.
 
 
 '''
@@ -132,13 +132,13 @@ def add_discrete_colorbar(scatter, labels, cbar_label=None, ax=None, cmap=None, 
         Categorical labels per point. Converted to strings for tick labels.
 
     cbar_label : str or None, default=None
-        Colorbar label.
+        Colorbar label. If None, uses 'Value'.
 
     ax : matplotlib.axes.Axes or None, default=None
         Target axes. Defaults to `plt.gca()`.
 
-    cmap : str or matplotlib.colors.Colormap or None, default=None
-        Colormap name or object. Defaults to `cm.inferno`.
+    cmap : matplotlib.colors.Colormap or None, default=None
+        Colormap object. Defaults to `cm.plasma_r`.
 
     dpi : int, default=600
         Unused in this helper (kept for API consistency with plotting functions).
@@ -187,7 +187,7 @@ def set_ticks(ax=None, dpi=600):
     Set x and y ticks for an axis depending on range.
 
     If the axis span exceeds 100 units, ticks are placed every 10 units;
-    otherwise, Matplotlib's default tick locator is preserved.
+    otherwise, the existing tick locator is preserved.
 
     Parameters
     ----------
@@ -237,7 +237,7 @@ def replicatemap_from_labels(labels, frame_list,
     Parameters
     ----------
     labels : array-like of shape (n_total_frames,)
-        Label per frame (e.g., k-means cluster or any discrete annotation),
+        Numeric label per frame (e.g., k-means cluster),
         concatenated across replicates in the same order as `frame_list`.
 
     frame_list : array-like of shape (n_replicates,)
@@ -245,20 +245,20 @@ def replicatemap_from_labels(labels, frame_list,
         used to build `labels`.
 
     savepath : str or None, default=None
-        Directory or path *prefix* where the plot is saved. If None, uses
-        `os.getcwd()`. The file name appended is ``'replicate_map.png'``
-        (i.e., saved at ``f"{savepath}replicate_map.png"``).
+        Path *prefix* where the plot is saved. If None, uses
+        `os.getcwd()`. The file name appended is ``'_replicate_map.png'``
+        (i.e., saved at ``f"{savepath}_replicate_map.png"``).
 
     title : str or None, default=None
         Figure title; if None, a default is used.
 
     xlabel, ylabel : str or None, default=None
-        Axis labels. If omitted, defaults are used.
+        Axis labels. If omitted, axes are left unlabeled.
 
     cbar_label : str or None, default=None
         Label for the colorbar.
 
-    cmap : str or matplotlib.colors.Colormap or None, default=None
+    cmap : matplotlib.colors.Colormap or None, default=None
         Colormap for the label values. Defaults to ``cm.magma_r``.
 
     dpi : int, default=600
@@ -271,9 +271,9 @@ def replicatemap_from_labels(labels, frame_list,
 
     Notes
     -----
-    - Uses a small square marker per (replicate, frame) and a discrete colorbar
-      for low/medium cardinality labels; switches to a continuous colorbar when
-      unique label count is very large (>= 1000).
+    - Uses a small square marker per (replicate, frame) and a discrete colorbar;
+      switches to a continuous colorbar when there are >= 1000 unique values
+      across replicate indices, frame positions, and labels.
     - Replicate index is placed on the y-axis (top row is replicate 0) and the
       axis is inverted for a top-down visual.
 
@@ -354,9 +354,9 @@ def plot_sillohette_scores(cluster_range, silhouette_scores, outfile_path=None,
     silhouette_scores : array-like
         Silhouette score per k (same length/order as `cluster_range`).
 
-    outfile_path : str, default='sillohette_method.png'
-        Path prefix or filename to save the figure. The code appends the suffix
-        ``'sillohuette_plot'`` (note spelling) to this string.
+    outfile_path : str or None, default=None
+        Path prefix to save the figure. If None, uses `os.getcwd()`.
+        The code appends ``'sillohuette_plot'`` (note spelling) to this string.
 
     title, xlabel, ylabel : str or None
         Optional figure/axis labels.
@@ -402,9 +402,9 @@ def plot_elbow_scores(cluster_range, inertia_scores, outfile_path=None,
     inertia_scores : array-like
         KMeans inertia per k (same length/order as `cluster_range`).
 
-    outfile_path : str, default='elbow_method.png'
-        Path prefix or filename to save the figure. The code appends the suffix
-        ``'elbow_plot'`` to this string.
+    outfile_path : str or None, default=None
+        Path prefix to save the figure. If None, uses `os.getcwd()`.
+        The code appends ``'elbow_plot'`` to this string.
 
     title, xlabel, ylabel : str or None
         Optional figure/axis labels.
@@ -451,21 +451,21 @@ def bubble_grid_manifoldlearning(UMAP_opt_dataframe,
         Columns required:
           - 'n_neighbors' (int)
           - 'min_dist' (float)
-          - 'pearson_r' (float)
+          - 'pearson_r' (float), or 'trustworthiness score' (float) as a fallback.
           - 'bubble_size' (float): precomputed marker areas (points^2) to use for s=.
     xlabel, ylabel, title : str or None
         Axis/title labels. Defaults: 'N. Neighbors', 'Min Dist', 'UMAP Hyperparameter Sweep'.
     cbar_label : str or None
-        Colorbar label. Default 'Pearson r'.
-    cmap : matplotlib Colormap or sequence or None
-        Base colormap for coloring by 'pearson_r'. Default is cm.magma_r.
-        If a sequence (list/tuple/ndarray) is provided, it is converted to a
-        colormap. Ignored if `color_palette` is provided.
+        Colorbar label. Default 'Pearson r'; the fallback uses 'trustworthiness score'.
+    cmap : matplotlib.colors.Colormap or None
+        Base colormap for coloring by the score. Default is cm.magma_r.
+        Ignored if `color_palette` is provided.
     color_palette : sequence or matplotlib Colormap, optional
         Simple override for `cmap`. If given a list/tuple/array of colors,
         a colormap is constructed from it; if given a Colormap, it is used directly.
     savepath : str or None
         Full path (including filename) to save the figure. Defaults to cwd.
+        The trustworthiness fallback appends ``'_umap_sweep'``.
     dpi : int
         Dots-per-inch for saving (default 600).
 
@@ -562,9 +562,6 @@ def get_Circos_coordinates(residue, gcircle):
     gcircle : py.Gcircle
         A PyCircos `Gcircle` object that already contains arcs.
 
-    dpi : int, default=600
-        Unused in this helper (kept for API consistency with plotting functions).
-
     Returns
     -------
     tuple
@@ -598,9 +595,6 @@ def make_MDCircos_object(residue_indexes):
     ----------
     residue_indexes : list of (str or int)
         Residue identifiers to add as arcs. Stored as strings internally.
-
-    dpi : int, default=600
-        Unused here (figure dpi is not altered to avoid changing behavior).
 
     Returns
     -------
@@ -674,7 +668,8 @@ def mdcircos_graph(empty_circle, residue_dict, savepath=os.getcwd()+'mdcircos_gr
 
     residue_dict : dict[str, float]
         Mapping from pair key ``'i-j'`` to a numeric magnitude (used for both
-        chord color and line width after normalization).
+        chord color and line width after normalization). Must contain at least
+        one nonzero magnitude; zero-weight pairs are skipped.
 
     savepath : str, default=os.getcwd()+'mdcircos_graph'
         Output *prefix* for image files.
@@ -682,8 +677,9 @@ def mdcircos_graph(empty_circle, residue_dict, savepath=os.getcwd()+'mdcircos_gr
     scale_factor : float, default=5
         Multiplier for the normalized chord linewidths.
 
-    colormap : str or matplotlib.colors.Colormap, default=cm.magma_r
+    colormap : matplotlib.colors.Colormap or None, default=cm.magma_r
         Colormap used for chord colors and the separate colorbar.
+        If None, uses `cm.plasma`.
 
     dpi : int, default=600
         Dots-per-inch used when saving the figures.
@@ -691,13 +687,13 @@ def mdcircos_graph(empty_circle, residue_dict, savepath=os.getcwd()+'mdcircos_gr
     Returns
     -------
     None
-        Saves figure(s) to disk and closes the colorbar figure.
+        Saves figures to disk and closes both figures.
 
     Notes
     -----
     - Colors are min-max normalized over the raw (signed) values; widths use
-      min-max over absolute values for aesthetics.
-    - Pair keys are split on the first '-' to look up per-residue arc anchors.
+      min-max over nonzero absolute values for aesthetics.
+    - Pair keys are split on '-' to look up per-residue arc anchors.
 
     Examples
     --------
@@ -761,9 +757,6 @@ def extract_properties_from_weightsdf(pca_table):
         - 'Comparisons' : str, residue pair keys like ``'i-j'``.
         - 'PC1_magnitude' : float
         - 'PC2_magnitude' : float
-
-    dpi : int, default=600
-        Unused in this helper (kept for API consistency with plotting functions).
 
     Returns
     -------
@@ -884,51 +877,53 @@ def visualize_reduction(embedding_coordinates,
 
     Parameters
     ----------
-    embedding_coordinates : array-like of shape (n_samples, 2)
+    embedding_coordinates : numpy.ndarray of shape (n_samples, 2)
         The 2D coordinates to plot.
 
-    cbar_type : {'discrete', 'continuous'} or None, default=None
+    cbar_type : {'discrete', 'continous'} or None, default=None
         Desired colorbar behavior. If None, defaults to 'discrete'.
-        When 'discrete' is selected but the number of unique values in `color_mappings`
-        is large (>= 250), the function automatically falls back to a continuous colorbar.
+        The continuous option currently uses the spelling 'continous'.
 
     color_mappings : array-like of shape (n_samples,) or None, default=None
-        Values used to color points.
-        - If provided (non-empty) and treated as *categorical* (i.e., `cbar_type='discrete'`
-          and < 250 unique values), a discrete colorbar is drawn.
-        - If provided but either `cbar_type='continuous'` or >= 250 unique values,
-          a continuous colorbar is drawn.
-        - If None or empty, points are colored by their index (0..n_samples-1)
+        Numeric values used to color points.
+        - With `cbar_type='discrete'` and < 250 unique values, a discrete
+          colorbar is drawn.
+        - With `cbar_type='continous'` and > 250 unique values, a continuous
+          colorbar is drawn.
+        - If None, points are colored by their index (0..n_samples-1)
           with a continuous colorbar.
+        - Other combinations do not draw points.
 
     savepath : str, default=os.getcwd()
-        Full output path **including filename**. No extension is appended automatically.
-        The figure is saved at 500 DPI.
+        Full output path **including filename**. Matplotlib adds its default
+        extension if omitted. The figure is saved at `dpi`.
 
-    title : str or None, default='Dimensional Reduction of Systems'
+    title : str or None, default=None
         Figure title.
 
-    cmap : str or matplotlib.colors.Colormap or sequence, default=cm.magma_r
-        Base colormap. If a sequence is passed, it is converted to a Colormap.
+    cmap : str or matplotlib.colors.Colormap or sequence or None, default=None
+        Base colormap. If None, uses `cm.magma_r`.
+        If a sequence is passed, it is converted to a Colormap.
+        Discrete colorbars require a Colormap or a sequence.
         Ignored when `color_palette` is provided.
 
-    axis_one_label : str or None, default='Embedding Space Axis 1'
+    axis_one_label : str or None, default=None
         X-axis label.
 
-    axis_two_label : str or None, default='Embedding Space Axis 2'
+    axis_two_label : str or None, default=None
         Y-axis label.
 
-    cbar_label : str or None, default='Value'
-        Colorbar label.
+    cbar_label : str or None, default=None
+        Colorbar label. If None, discrete colorbars use 'Value'; continuous
+        colorbars are left unlabeled.
 
     gridvisible : bool, default=False
         If True, show a background grid.
 
     color_palette : sequence of color specs or matplotlib.colors.Colormap, default=None
         User-supplied palette that overrides `cmap`.
-        - With categorical coloring: builds a ListedColormap from the sequence.
-        - With continuous coloring or when `color_mappings` is None: builds a
-          LinearSegmentedColormap from the sequence.
+        - With non-empty `color_mappings`: builds a ListedColormap from the sequence.
+        - Otherwise: builds a LinearSegmentedColormap from the sequence.
         - If a Colormap object is supplied, it is used directly.
 
     dpi : int, default=600
@@ -941,10 +936,8 @@ def visualize_reduction(embedding_coordinates,
 
     Notes
     -----
-    - Figure size is 16×12 inches at 300 DPI (saved at 500 DPI).
+    - Figure size is 16×12 inches, created and saved at `dpi`.
     - Axes spines are hidden; tick density is coarsened via `set_ticks`.
-    - Automatically switches from discrete to continuous colorbar when
-      unique categories >= 250 to keep the legend readable.
     """
      
     is_categorical = color_mappings is not None and len(color_mappings) > 0
@@ -1047,11 +1040,12 @@ def rmsd_lineplots(pandasdf=None, title='RMSD plot',
     groupingvar : str, default='cluster'
         Column used to form separate lines (and legend entries).
 
-    cmap : str or matplotlib.colors.Colormap, default=cm.inferno_r
+    cmap : str, sequence or matplotlib.colors.Colormap, default=cm.inferno_r
         Palette/colormap to use.
 
     cmap_is_colormap : bool, default=True
-        If True, interpret `cmap` as a Matplotlib colormap.
+        If True, `cmap` must be a Matplotlib colormap object. If False,
+        passes `cmap` directly to Seaborn as a palette.
 
     legendtitle : str, default='Cluster'
         Legend title.
@@ -1115,14 +1109,14 @@ def contour_embedding_space(outfile_path, embeddingspace_coordinates, levels=10,
     outfile_path : str or None
         Output path (file name). If None, uses current working directory.
 
-    embeddingspace_coordinates : array-like of shape (n_samples, 2)
+    embeddingspace_coordinates : numpy.ndarray of shape (n_samples, 2)
         The 2-D embedding coordinates (e.g., PCA/UMAP).
 
-    levels : int, default=10
-        Number of contour levels.
+    levels : int or sequence, default=10
+        Number of contour levels, or explicit iso-proportion levels.
 
     thresh : float, default=0
-        Only draw contours where estimated density is greater than this threshold.
+        Lowest iso-proportion level to draw when `levels` is an integer.
 
     bw_adjust : float, default=0.5
         Bandwidth adjustment factor for KDE.
