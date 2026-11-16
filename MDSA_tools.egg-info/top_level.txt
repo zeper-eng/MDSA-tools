@@ -1,0 +1,8 @@
+Manuscript_JCIM
+docs
+manuscript_data_availability
+mdsa_tools
+notebooks
+resources
+tests
+trajectories_and_topologies

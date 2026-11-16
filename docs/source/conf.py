@@ -1,4 +1,4 @@
-exclude_patterns = ["_api/*"]
+exclude_patterns = ["_api/*", "_build/**", "_autosummary/mdsa_tools.msm_modeler.rst"]
 
 # docs/source/conf.py
 import os, sys

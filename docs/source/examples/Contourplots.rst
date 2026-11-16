@@ -29,7 +29,7 @@ the coordinates to ``.npy`` (shape ``(n_samples, 2)``).
    #########################################
    # Load 2-D embedding (PCA or UMAP)
    #########################################
-   # Example: file saved earlier during reduction; shape (n_samples, 2)
+   # Example: coordinates explicitly saved in the clustering example; shape (n_samples, 2)
    emb_path = "/path/to/output/reduction/test_embedding_coords.npy"
    E = np.load(emb_path)
 
@@ -38,6 +38,7 @@ the coordinates to ``.npy`` (shape ``(n_samples, 2)``).
    # Render density contours
    #########################################
    out_img = "/path/to/output/reduction/pca_density_contours.png"
+   os.makedirs(os.path.dirname(out_img), exist_ok=True)
    contour_embedding_space(
        outfile_path=out_img,
        embeddingspace_coordinates=E,
@@ -65,5 +66,5 @@ Notes
 See also
 --------
 - :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations` — produce 2-D PCA/UMAP.
-- :meth:`mdsa_tools.Analysis.systems_analysis.cluster_embeddingspace` — label points directly in embedding space.
+- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans` — pass embedding coordinates via ``data`` to label points in that space.
 - :mod:`mdsa_tools.Viz` — additional plotting helpers.
