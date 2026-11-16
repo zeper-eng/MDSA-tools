@@ -15,8 +15,12 @@ What you get
 Quickstart
 ----------
 
-Minimal example using two pre-generated systems (``.npy`` arrays produced by :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor` or :mod:`mdsa_tools.Cpptraj_import`).  
+Minimal example using two pre-generated systems (``.npy`` arrays produced by :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`).
 If you’re unfamiliar with producing these arrays, see :ref:`datagen`.
+
+The frame layout below follows the manuscript example: 3,200 frames per system,
+6,400 in total. Replace the replicate lengths with your actual concatenation and
+sampling metadata when using other arrays, including the short test trajectories.
 
 .. code-block:: python
 
@@ -31,22 +35,20 @@ If you’re unfamiliar with producing these arrays, see :ref:`datagen`.
    #########################################
    # Each system should be an array-like of shape:
    # (n_frames, n_res+1, n_res+1), where the leading row/col store 1-based residue IDs.
-   redone_CCU_GCU_fulltraj = np.load(
-       "/Users/luis/Downloads/redone_unrestrained_CCU_GCU_Trajectory_array.npy",
+   system_one = np.load(
+       "/path/to/example_systems/test_system_one.npy",  # GCU
        allow_pickle=True
    )
-   redone_CCU_CGU_fulltraj = np.load(
-       "/Users/luis/Downloads/redone_unrestrained_CCU_CGU_Trajectory_array.npy",
+   system_two = np.load(
+       "/path/to/example_systems/test_system_two.npy",  # CGU
        allow_pickle=True
    )
-   all_systems = [redone_CCU_GCU_fulltraj, redone_CCU_CGU_fulltraj]
+   all_systems = [system_one, system_two]
 
    #########################################
-   # Build analyzer and compute features
+   # Build analyzer
    #########################################
    Systems_Analyzer = systems_analysis(all_systems)
-   # Creates a feature matrix for downstream extraction/label ops
-   Systems_Analyzer.replicates_to_feature_matrix()
 
    #########################################
    # Extract discrete labels for residue pairs
@@ -58,41 +60,48 @@ If you’re unfamiliar with producing these arrays, see :ref:`datagen`.
    #########################################
    # Make a frame window list (for map layout)
    #########################################
-   # Here we build two blocks of frames per replicate: 20*80 and 10*160,
-   # and then duplicate for two systems/replicates -> total length matches labels.
+   # Manuscript layout: 20 replicates of 80 frames and 10 of 160 per system.
+   # Replace these lengths with your actual replicate metadata.
    frames = (([80] * 20) + ([160] * 10)) * 2
+   assert sum(frames) == len(hbond_counts_411_422)
+   assert sum(frames) == len(hbond_counts_412_422)
 
    #########################################
    # Plot replicate maps
    #########################################
-   outdir = "/Users/luis/Downloads/replicate_maps"
+   outdir = "/path/to/output/replicate_maps"
    os.makedirs(outdir, exist_ok=True)
 
    replicatemap_from_labels(
        labels=hbond_counts_411_422,
        frame_list=frames,
-       savepath=os.path.join(outdir, "replicatemap_discrete_411_422")
+       savepath=os.path.join(outdir, "replicatemap_discrete_411_422"),
+       title="411 to 422 H-bonding Per Frame",
+       xlabel="Frames", ylabel="Replicates", cbar_label="H-bond Count"
    )
 
    replicatemap_from_labels(
        labels=hbond_counts_412_422,
        frame_list=frames,
-       savepath=os.path.join(outdir, "replicatemap_discrete_412_422")
+       savepath=os.path.join(outdir, "replicatemap_discrete_412_422"),
+       title="412 to 422 H-bonding Per Frame",
+       xlabel="Frames", ylabel="Replicates", cbar_label="H-bond Count"
    )
 
 Notes
 -----
 
 - **Inputs:** Each system is a per-frame H-bond adjacency stack of shape ``(n_frames, n_res+1, n_res+1)``, with the 0-th row/col storing **1-based** residue indices. Slice ``[:, 1:, 1:]`` if you only need the numeric adjacency.
-- **Feature prep:** Call :meth:`~mdsa_tools.Analysis.systems_analysis.replicates_to_feature_matrix` before extracting labels so that downstream methods have aligned internal representations.
-- **Labels shape:** ``labels`` returned by :meth:`~mdsa_tools.Analysis.systems_analysis.extract_hbond_values` should align with your total frames across replicates/systems. Your ``frame_list`` must be the same total length.
+- **Feature prep:** :meth:`~mdsa_tools.Analysis.systems_analysis.extract_hbond_values` reads the saved adjacency arrays directly; creating a feature matrix is not required for this example.
+- **Labels shape:** ``labels`` returned by :meth:`~mdsa_tools.Analysis.systems_analysis.extract_hbond_values` follows the system and frame order in ``all_systems``. The sum of ``frame_list`` must equal ``len(labels)``.
 - **Windowing:** The ``frame_list`` can segment the visualization by blocks (e.g., different sampling intervals or concatenated runs). Adjust the counts to match your actual concatenation scheme.
-- **Saving:** :func:`~mdsa_tools.Viz.replicatemap_from_labels` writes figures to ``savepath`` (without extension); ensure the directory exists.
+- **Saving:** :func:`~mdsa_tools.Viz.replicatemap_from_labels` writes ``savepath + "_replicate_map.png"``; ensure the directory exists.
+- **Manuscript annotations:** The BRAKE-ON/OFF labels in the manuscript figure were added manually after plotting.
 
 Where this fits
 ---------------
 
-- Generate the adjacency arrays with :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor` (or build from cpptraj via :mod:`mdsa_tools.Cpptraj_import`), then pass them here.
+- Generate the adjacency arrays with :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`, then pass them here. The cpptraj importer returns feature vectors rather than the adjacency stacks required by ``extract_hbond_values``.
 - After inspecting replicate maps, you can:
   - Perform dimensionality reduction or clustering with :mod:`mdsa_tools.Analysis`.
   - Visualize embeddings or MDcircos contact weights with :mod:`mdsa_tools.Viz`.
@@ -102,6 +111,6 @@ See also
 --------
 
 - :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct the same matrices from cpptraj series tables.
+- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
 - :meth:`mdsa_tools.Analysis.systems_analysis.extract_hbond_values` — pull per-frame labels/counts for residue pairs.
 - :func:`mdsa_tools.Viz.replicatemap_from_labels` — render replicate maps from discrete label sequences.

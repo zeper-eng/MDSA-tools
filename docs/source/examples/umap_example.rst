@@ -18,9 +18,9 @@ Quickstart
 ~~~~~~~~~~
 
 Minimal example using two pre-generated systems (``.npy`` arrays made by
-:class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor` or
-:mod:`mdsa_tools.Cpptraj_import`). If you’re unfamiliar with producing these arrays,
-see :ref:`datagen`.
+:class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`). If you’re unfamiliar with
+producing these arrays, see :ref:`datagen`. For cpptraj feature-matrix input, use
+the precomputed-matrix initialization in :ref:`cpptraj_hbond_import`.
 
 .. code-block:: python
 
@@ -35,11 +35,11 @@ see :ref:`datagen`.
 
    # Each system: (n_frames, n_res+1, n_res+1). Row/col 0 stores 1-based residue IDs.
    sys_A = np.load(
-       "/Users/luis/Downloads/redone_unrestrained_CCU_GCU_Trajectory_array.npy",
+       "/path/to/example_systems/test_system_one.npy",
        allow_pickle=True,
    )
    sys_B = np.load(
-       "/Users/luis/Downloads/redone_unrestrained_CCU_CGU_Trajectory_array.npy",
+       "/path/to/example_systems/test_system_two.npy",
        allow_pickle=True,
    )
    all_systems = [sys_A, sys_B]
@@ -55,7 +55,8 @@ see :ref:`datagen`.
    # Per-replicate frame-index labels
    #####################################
 
-   # Example: for each replicate, 20×80 frames then 10×160 frames; duplicated for two systems.
+   # Manuscript layout: 20×80 frames then 10×160 frames per system (6400 total).
+   # Replace these lengths with your actual replicate boundaries in concatenation order.
    frame_blocks = (([80] * 20) + ([160] * 10)) * 2
    per_rep_timeframe = np.concatenate([np.arange(0, n, 1) for n in frame_blocks])
 
@@ -78,15 +79,19 @@ see :ref:`datagen`.
    # Plot & save (using project helper)
    #####################################
 
-   outdir = "/Users/luis/Downloads/embeddings"
+   outdir = "/path/to/output/embeddings"
    os.makedirs(outdir, exist_ok=True)
    outfile = os.path.join(outdir, "umap_per_replicate_frame.png")
 
    visualize_reduction(
        umap_xy,
-       labels=per_rep_timeframe,
+       color_mappings=per_rep_timeframe,
        title="UMAP of per-frame features (colored by per-replicate frame index)",
        savepath=outfile,
+       axis_one_label="Embedding Space Axis 1",
+       axis_two_label="Embedding Space Axis 2",
+       cbar_label="Frame Number",
+       gridvisible=True,
    )
 Notes
 ~~~~~
@@ -94,20 +99,24 @@ Notes
 - **Input format:** Each system is a per-frame adjacency stack shaped
   ``(n_frames, n_res+1, n_res+1)`` with **1-based** residue indices in the leading row/col.
   Slice ``[:, 1:, 1:]`` if you only need the numeric adjacency.
+  Retain headers when passing stacks into ``systems_analysis``.
 - **Feature matrix:** :meth:`~mdsa_tools.Analysis.systems_analysis.replicates_to_feature_matrix`
   flattens each frame’s **upper triangle** so rows correspond to frames and columns to
   unique residue–residue pairs.
 - **Labels:** ``per_rep_timeframe`` must be the same length as the total number of frames
   across all systems (concatenation order should match your feature stacking).
+  The 6400-frame layout above is specific to the manuscript data; it does not fit the
+  bundled short trajectories without replacing ``frame_blocks``.
 - **Tuning UMAP:**
   
   * ``n_neighbors`` ↑ → more global structure; ↓ → more local detail.
   * ``min_dist`` ↓ → tighter clusters; ↑ → more spread.
   
-  Consider standardizing features first if magnitudes vary widely.
-- **Reproducibility:** Set ``random_state`` on UMAP if you need deterministic layouts
-  (e.g., ``umap.UMAP(random_state=0, ...)`` inside
-  :meth:`~mdsa_tools.Analysis.systems_analysis.reduce_systems_representations`).
+  Consider standardizing features first if magnitudes vary widely. Assign any
+  preprocessed matrix to ``SA.feature_matrix`` before reduction: the current wrapper
+  uses that cached matrix in preference to its ``feature_matrix`` argument.
+- **Reproducibility:** The current reduction wrapper does not expose ``random_state``;
+  its UMAP layouts are stochastic. Exact thumbnail coordinates are not guaranteed.
 
 Where this fits
 ~~~~~~~~~~~~~~~
@@ -122,6 +131,6 @@ See also
 ~~~~~~~~
 
 - :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct matrices from cpptraj series tables.
+- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
 - :meth:`mdsa_tools.Analysis.systems_analysis.replicates_to_feature_matrix` — feature preparation.
 - :mod:`mdsa_tools.Viz` *(optional)*: ``visualize_reduction`` scatter helper.

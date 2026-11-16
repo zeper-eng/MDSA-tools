@@ -5,6 +5,14 @@ Here you can find worked-out example scripts that demonstrate
 how to use **MDSA-tools** for clustering, visualization, and 
 analysis of molecular dynamics data.
 
+Start with :ref:`datagen` for per-frame residue-pair matrices, then :ref:`full_example`
+for feature construction, clustering, and reduction. :ref:`cpptraj_hbond_import`
+instead produces a precomputed feature matrix. Feature rows represent frames;
+replicate maps and cohesion additionally require the actual per-replicate frame counts.
+These examples analyze residue-pair interactions; they do not compute graph centrality or communities.
+
+Preview images illustrate manuscript analyses; some annotations were added separately.
+
 .. grid:: 4 4 4 4
    :gutter: 4
    :class-container: full-width 
@@ -33,7 +41,7 @@ analysis of molecular dynamics data.
 
       ^^^
       .. image:: ../resources/datagenn.png
-         :alt: Data generation workflow
+         :alt: Per-frame residue-pair adjacency representations
          :width: 100%
          :align: center
 
@@ -43,7 +51,7 @@ analysis of molecular dynamics data.
       :shadow: lg
       :text-align: center
 
-      **Importer Example**
+      **Cpptraj Feature Import Example**
 
       ^^^
       .. image:: ../resources/Amberlogo.png
@@ -61,7 +69,7 @@ analysis of molecular dynamics data.
 
       ^^^
       .. image:: ../resources/test_one.png
-         :alt: Example systems
+         :alt: Density contours over embedding coordinates
          :width: 100%
          :align: center
 
@@ -75,7 +83,7 @@ analysis of molecular dynamics data.
 
       ^^^
       .. image:: ../resources/rmsd_example.png
-         :alt: Filler card 7
+         :alt: Per-cluster embedding-space RMSD across windows
          :width: 100%
          :align: center
 
@@ -104,7 +112,7 @@ analysis of molecular dynamics data.
 
       ^^^
       .. image:: ../resources/Hbond_Replicate_Map.png
-         :alt: Filler card 8
+         :alt: Residue-pair H-bond counts across frames and replicates
          :width: 100%
          :align: center
 
@@ -118,7 +126,7 @@ analysis of molecular dynamics data.
 
       ^^^
       .. image:: ../resources/UMAP-img.png
-         :alt: Filler card 9
+         :alt: UMAP embedding colored by frame index within each replicate
          :width: 100%
          :align: center
 

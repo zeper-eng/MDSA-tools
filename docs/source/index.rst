@@ -13,7 +13,7 @@ Welcome to MDSA-tools!
    :target: https://doi.org/10.5281/zenodo.17195649
    :alt: DOI: 10.5281/zenodo.17195649
 
-MDSA-tools is a Python package for systems-level analysis of molecular-dynamics (MD) data. It provides utilities for clustering, dimensionality reduction (PCA, UMAP), visualization, and hydrogen-bond network generation.
+MDSA-tools is a Python package for systems-level analysis of molecular-dynamics (MD) data. It provides utilities for clustering, dimensionality reduction (PCA, UMAP), visualization, and per-frame hydrogen-bond interaction representations.
 
 
 .. toctree:: 
@@ -38,7 +38,7 @@ MDSA-tools is a Python package for systems-level analysis of molecular-dynamics 
       ^^^
       
       .. image:: /resources/pipeline_11_2_2025.png
-         :alt: PCA clusters for system A
+         :alt: Workflow from residue-pair representations to clustering and visualization
          :width: 100%
          :align: center
 
@@ -71,7 +71,7 @@ suggesting long-range allosteric interactions across the neighborhood.
       +++
       **A Systems Analysis of Ribosomal CAR-site Dynamics**
 
-Focused on leveraging unsupervised learning algorithm workflows our pipeline can build hydrogen-bond adjacency matrices from MDTraj or import them from Cpptraj. By design, the analysis and visualization modules are data-agnostic as long as you fit the expected schema.
+Focused on leveraging unsupervised learning algorithm workflows our pipeline can build hydrogen-bond adjacency matrices from MDTraj or import residue-pair feature vectors from Cpptraj. By design, the analysis and visualization modules are data-agnostic as long as you fit the expected schema.
 
    .. grid-item-card:: 
       :link: examples
@@ -89,5 +89,3 @@ Focused on leveraging unsupervised learning algorithm workflows our pipeline can
       +++
       
       **Use cases from Visualization to Analysis**
-
- 
