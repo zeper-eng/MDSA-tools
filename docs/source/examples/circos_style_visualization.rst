@@ -4,11 +4,11 @@ MDcircos (PCA-weighted contacts)
 ===========================================
 
 Use :class:`mdsa_tools.Analysis.systems_analysis` to build feature matrices from
-saved H-bond adjacency arrays and compute PCA weightings. Then visualize the
-most salient residue–residue contacts with :mod:`mdsa_tools.Viz`’s MDcircos helpers.
+saved H-bond adjacency arrays and compute PCA weights. Then plot the
+residue–residue weights with the MDcircos functions in :mod:`mdsa_tools.Viz`.
 
-What you get
-------------
+Outputs
+-------
 - A :class:`~mdsa_tools.Analysis.systems_analysis` instance bound to your list of systems.
 - A PCA weights table (``pandas.DataFrame``) with columns like
   ``Comparisons``, ``PC1_Weights``, and ``PC1_magnitude``. Rows retain feature
@@ -49,13 +49,13 @@ If you are unfamiliar with making theese see :ref:`datagen`.
    PCA_ranked_weights = SA.create_PCA_ranked_weights()  # DataFrame with PC loadings
 
    #########################################
-   # One-shot MDcircos of PC1 and PC2 magnitudes
+   # Plot PC1 and PC2 magnitudes with MDcircos
    #########################################
    outdir = "/path/to/output/circos"
    os.makedirs(outdir, exist_ok=True)
    create_MDcircos_from_weightsdf(PCA_ranked_weights, os.path.join(outdir, "overall_"))
 
-The one-shot helper requires both ``PC1_magnitude`` and ``PC2_magnitude`` and
+The plotting function requires both ``PC1_magnitude`` and ``PC2_magnitude`` and
 saves diagrams for both components using the supplied output prefix.
 
 In our case, PC1 clearly separates systems (e.g., one system loads positively and the
@@ -98,11 +98,9 @@ Notes
 - **Filtering:** The ``PCA_ranked_weights`` table retains feature order. Sort with
   ``sort_values("PC1_magnitude", ascending=False)`` to rank contacts, or subset
   by sign (positive/negative) or magnitude before plotting.
-- **Reproducibility:** Keep your saved arrays and output figures in versioned folders
-  so you can re-run the analysis when trajectory preprocessing changes.
 
-Where this fits
----------------
+Related analyses
+----------------
 - Generate the adjacency arrays with :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`
   (or initialize from cpptraj features as in :ref:`cpptraj_hbond_import`), then compute PCA weights here.
 - After identifying key contacts with PCA/MDcircos, you can:
@@ -112,7 +110,7 @@ Where this fits
 
 See also
 --------
-- :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
-- :meth:`mdsa_tools.Analysis.systems_analysis.create_PCA_ranked_weights` — ranked PC loadings.
-- :func:`mdsa_tools.Viz.create_MDcircos_from_weightsdf` — quick MDcircos from a weights DataFrame.
+- :mod:`mdsa_tools.Data_gen_hbond`: build per-frame H-bond adjacency matrices.
+- :mod:`mdsa_tools.Cpptraj_import`: construct feature matrices from cpptraj series tables.
+- :meth:`mdsa_tools.Analysis.systems_analysis.create_PCA_ranked_weights`: ranked PC loadings.
+- :func:`mdsa_tools.Viz.create_MDcircos_from_weightsdf`: plot MDcircos from a weights DataFrame.

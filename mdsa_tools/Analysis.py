@@ -1,9 +1,9 @@
 '''
-High-level wrapper for storing and running common analyses over systems of
+Tools for storing and running analyses over systems of
 residue–residue adjacency matrices (e.g., H-bond networks).
 
-You can follow the provided pipeline end-to-end, or call individual, modular
-steps (flattening → feature matrix → dimensionality reduction → clustering).
+Run feature construction, dimensionality reduction, and clustering together
+or call each step separately.
 For example, you might cluster arbitrary n-dimensional feature matrices, or
 pull H-bond values via ``systems_analysis.extract_hbond_values()`` and use
 those in replicate maps instead of k-means cluster assignments.
@@ -354,7 +354,7 @@ class systems_analysis:
             Target embedding dimensionality.
         min_dist : float
             UMAP ``min_dist`` hyperparameter controlling how tightly points cluster
-            (smaller ⇒ tighter clusters). Ignored for PCA. Default ``0.5``.
+            (smaller values give tighter clusters). Ignored for PCA. Default ``0.5``.
         n_neighbors : int
             UMAP neighborhood size controlling local vs global structure. Ignored
             for PCA. Default ``900``.
@@ -682,7 +682,7 @@ class systems_analysis:
         '''
         Grid-search UMAP over n_neighbors and min_dist, and for each embedding
         compute Pearson r between pdist(feature space) and pdist(embedding space).
-        Returns a tidy DataFrame for easy plotting (bubble chart etc.).
+        Returns a DataFrame with the scores for each parameter combination.
 
         Parameters
         ----------
@@ -754,7 +754,7 @@ class systems_analysis:
         '''
         Grid-search UMAP over n_neighbors and min_dist, and for each embedding
         compute neighborhood trustworthiness between feature and embedding space.
-        Returns a tidy DataFrame for easy plotting (bubble chart etc.).
+        Returns a DataFrame with the scores for each parameter combination.
 
         Parameters
         ----------
@@ -854,11 +854,11 @@ class systems_analysis:
             A table mapping each feature (upper-triangle residue pair) to its PCA weights and
             magnitudes with columns:
 
-            * ``Comparisons``     — 'i-j' residue pair label (str)
-            * ``PC1_Weights``     — raw loading for PC1 (float)
-            * ``PC2_Weights``     — raw loading for PC2 (float)
-            * ``PC1_magnitude``   — (PC1_Weights)**2 (float)
-            * ``PC2_magnitude``   — (PC2_Weights)**2 (float)
+            * ``Comparisons``    : 'i-j' residue pair label (str)
+            * ``PC1_Weights``    : raw loading for PC1 (float)
+            * ``PC2_Weights``    : raw loading for PC2 (float)
+            * ``PC1_magnitude``  : (PC1_Weights)**2 (float)
+            * ``PC2_magnitude``  : (PC2_Weights)**2 (float)
 
         Notes
         -----
@@ -920,12 +920,12 @@ class systems_analysis:
         Returns
         -------
         pandas.DataFrame
-            Tidy table with one row per (centroid, pair) containing:
+            Table with one row per (centroid, pair) containing:
 
-            * ``pair``     — residue–residue label ``"i-j"`` (str)
-            * ``count``    — number of samples in that centroid for which this pair
+            * ``pair``    : residue–residue label ``"i-j"`` (str)
+            * ``count``   : number of samples in that centroid for which this pair
             was the maximum-contributing feature (int)
-            * ``centroid`` — centroid/cluster id (int)
+            * ``centroid``: centroid/cluster id (int)
 
             The table can be sorted/grouped to retrieve the top pairs per centroid.
 
@@ -1003,12 +1003,12 @@ class systems_analysis:
         Returns
         -------
         pandas.DataFrame
-            Tidy table with one row per (centroid, pair) containing:
+            Table with one row per (centroid, pair) containing:
 
-            * ``pair``     — residue–residue label ``"i-j"`` (str)
-            * ``count``    — number of samples in that centroid for which this pair
+            * ``pair``    : residue–residue label ``"i-j"`` (str)
+            * ``count``   : number of samples in that centroid for which this pair
             was the maximum-contributing feature (int)
-            * ``centroid`` — centroid/cluster id (int)
+            * ``centroid``: centroid/cluster id (int)
 
             The table can be sorted/grouped to retrieve the top pairs per centroid.
 
@@ -1206,8 +1206,8 @@ class systems_analysis:
 
         Notes
         -----
-        Thin wrapper around ``sklearn.decomposition.PCA``; fits on the provided
-        feature matrix and returns the transformed coordinates, component loadings,
+        Uses ``sklearn.decomposition.PCA`` to fit the provided
+        feature matrix and return the transformed coordinates, component loadings,
         and explained-variance ratios.
 
         Examples

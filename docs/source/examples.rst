@@ -1,9 +1,8 @@
 ﻿Examples
 ========
 
-Here you can find worked-out example scripts that demonstrate 
-how to use **MDSA-tools** for clustering, visualization, and 
-analysis of molecular dynamics data.
+Example scripts for clustering, visualization, and analysis of molecular dynamics
+data with **MDSA-tools**.
 
 Start with :ref:`datagen` for per-frame residue-pair matrices, then :ref:`full_example`
 for feature construction, clustering, and reduction. :ref:`cpptraj_hbond_import`
@@ -26,7 +25,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Circos Example**
 
       ^^^
-      .. image:: ../resources/Circos_example_Medium.jpeg
+      .. image:: ../../resources/Circos_example_Medium.jpeg
          :alt: Circos example visualization
          :width: 100%
          :align: center
@@ -40,7 +39,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Data Generation Example**
 
       ^^^
-      .. image:: ../resources/datagenn.png
+      .. image:: ../../resources/datagenn.png
          :alt: Per-frame residue-pair adjacency representations
          :width: 100%
          :align: center
@@ -54,7 +53,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Cpptraj Feature Import Example**
 
       ^^^
-      .. image:: ../resources/Amberlogo.png
+      .. image:: ../../resources/Amberlogo.png
          :alt: Import from cpptraj
          :width: 100%
          :align: center
@@ -68,7 +67,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Contourplots**
 
       ^^^
-      .. image:: ../resources/test_one.png
+      .. image:: ../../resources/test_one.png
          :alt: Density contours over embedding coordinates
          :width: 100%
          :align: center
@@ -82,7 +81,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Cohesion (RMSD) Analysis**
 
       ^^^
-      .. image:: ../resources/rmsd_example.png
+      .. image:: ../../resources/rmsd_example.png
          :alt: Per-cluster embedding-space RMSD across windows
          :width: 100%
          :align: center
@@ -96,7 +95,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Clustering and Dim-Red Examples**
 
       ^^^
-      .. image:: ../resources/analysis_pipeline.png
+      .. image:: ../../resources/analysis_pipeline.png
          :alt: Example of clustering analysis
          :width: 100%
          :align: center
@@ -111,7 +110,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **Hbond Replicate Maps**
 
       ^^^
-      .. image:: ../resources/Hbond_Replicate_Map.png
+      .. image:: ../../resources/Hbond_Replicate_Map.png
          :alt: Residue-pair H-bond counts across frames and replicates
          :width: 100%
          :align: center
@@ -125,7 +124,7 @@ Preview images illustrate manuscript analyses; some annotations were added separ
       **UMAP embedding visualization example**
 
       ^^^
-      .. image:: ../resources/UMAP-img.png
+      .. image:: ../../resources/UMAP-img.png
          :alt: UMAP embedding colored by frame index within each replicate
          :width: 100%
          :align: center

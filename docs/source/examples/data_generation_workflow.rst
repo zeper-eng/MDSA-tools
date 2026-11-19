@@ -8,8 +8,8 @@ Use :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor` to turn trajectories
 These arrays feed directly into the rest of the pipeline (clustering, PCA/UMAP,
 subdomain bits).
 
-What you get
-------------
+Outputs
+-------
 - For each trajectory: an array of shape ``(n_frames, n_res+1, n_res+1)``.
 - Row/col ``0`` store residue labels (``resSeq + 1`` with the default ``one_indexed=True``).
 - The submatrix ``[:, 1:, 1:]`` is the symmetric numeric adjacency stack (H-bond counts).
@@ -66,14 +66,14 @@ Notes
   use ``one_indexed=True`` for contiguous ``resSeq`` values starting at 0, or
   ``one_indexed=False`` for contiguous values starting at 1. Other numbering
   schemes require consistent renumbering before generation.
-- The leading index row/col keeps downstream tooling simple; slice ``[:, 1:, 1:]``
+- The leading row/col stores residue labels; slice ``[:, 1:, 1:]``
   for a stack or ``system_one[0, 1:, 1:]`` for one frame's numeric part.
   Retain the labels when passing stacks to ``systems_analysis``.
 - Filtering keeps matching residue labels in their original order. The shape
   shown above assumes all requested labels exist and are unique.
 
-Where this fits
----------------
+Related analyses
+----------------
 - Load ``test_system_one.npy`` (GCU) and ``test_system_two.npy`` (CGU) from
   ``outdir`` and pass them as a list to :mod:`mdsa_tools.Analysis` for
   feature-matrix construction and clustering.
@@ -83,6 +83,6 @@ Where this fits
 
 See also
 --------
-- :mod:`mdsa_tools.Analysis` — clustering, PCA/UMAP, subdomain helpers.
-- :mod:`mdsa_tools.Viz` — quick plots for embeddings and replicate maps.
-- :mod:`mdsa_tools.Cpptraj_import` — build residue-pair features from cpptraj series tables.
+- :mod:`mdsa_tools.Analysis`: clustering, PCA/UMAP, subdomain helpers.
+- :mod:`mdsa_tools.Viz`: plot embeddings and replicate maps.
+- :mod:`mdsa_tools.Cpptraj_import`: build residue-pair features from cpptraj series tables.

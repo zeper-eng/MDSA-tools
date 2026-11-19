@@ -54,7 +54,7 @@ html_theme_options = {
     "show_toc_level": 2,
 }
 
-templates_path = ["_templates"]
+templates_path = ["../_templates"]
 
 html_sidebars = {
     "**": [
@@ -63,9 +63,6 @@ html_sidebars = {
         "github-badge.html",  # your custom partial
     ]
 }
-html_static_path = ["_static"]
-html_css_files = ["custom.css"]
-
 # Theme settings 
 html_theme = "renku"
 html_show_sourcelink = False
@@ -75,7 +72,5 @@ html_show_sourcelink = False
 root_doc = "index"
 
 # Static files (e.g., CSS) for customization
-html_static_path = ["_static"]
+html_static_path = ["../_static", "_static"]
 html_css_files = ["fullwidth.css"]
-
-mdsa = "mdsa_tools.cli:main"

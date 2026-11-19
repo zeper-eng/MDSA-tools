@@ -8,8 +8,8 @@ over time in a 2-D embedding (PCA/UMAP). We compute per-cluster RMSD to the
 assigned center within moving windows—either **sliding windows** (fixed width,
 hop forward) or **shrinking windows** (drop early frames and keep the tail).
 
-What you get
-------------
+Outputs
+-------
 - Windowed **embedding-space RMSD** per cluster (as ``.csv`` tables).
 - Easy to analyze **line plots** comparing your clusters progressive cohesion score via :func:`mdsa_tools.Viz.rmsd_lineplots`.
 - Hooks to extend into subdomain_explorations diagnostics.
@@ -89,8 +89,8 @@ Notes
 - **Sanity checks:** Inspect the CSVs for clusters that vanish in a window
   (they simply won’t appear in that window’s rows).
 
-Where this fits
----------------
+Related analyses
+----------------
 - After :ref:`full_example` clustering, run cohesion to assess the geometric
   compactness of your K-means states over windows. Kinetic validity requires separate analysis.
 - Combine with **replicate maps** (see :mod:`mdsa_tools.Viz`) to visualize
@@ -98,7 +98,7 @@ Where this fits
 
 See also
 --------
-- :class:`mdsa_tools.subdomain_explorations.subdomain_explorations` — cohesion windows, transition matrices.
-- :func:`mdsa_tools.Viz.rmsd_lineplots` — render per-cluster RMSD vs. window.
-- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans` — produce labels/centers.
-- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations` — get PCA/UMAP.
+- :class:`mdsa_tools.subdomain_explorations.subdomain_explorations`: cohesion windows, transition matrices.
+- :func:`mdsa_tools.Viz.rmsd_lineplots`: render per-cluster RMSD vs. window.
+- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans`: produce labels/centers.
+- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations`: get PCA/UMAP.

@@ -5,10 +5,10 @@ UMAP embeddings (per-frame labelling)
 Use :class:`mdsa_tools.Analysis.systems_analysis` to flatten per-frame H-bond
 adjacency matrices into a feature matrix, then run a non-linear reduction with
 **UMAP**. In this example, we color the embedding by a **per-replicate frame
-index** so you can see temporal progression (“crawl”) within each replicate.
+index** to show frame progression within each replicate.
 
-What you get
-~~~~~~~~~~~~
+Outputs
+~~~~~~~
 
 - A :class:`~mdsa_tools.Analysis.systems_analysis` instance bound to your systems.
 - A 2-D UMAP embedding (``(n_frames_total, 2)``).
@@ -109,8 +109,8 @@ Notes
   bundled short trajectories without replacing ``frame_blocks``.
 - **Tuning UMAP:**
   
-  * ``n_neighbors`` ↑ → more global structure; ↓ → more local detail.
-  * ``min_dist`` ↓ → tighter clusters; ↑ → more spread.
+  * Larger ``n_neighbors`` values emphasize global structure; smaller values emphasize local detail.
+  * Smaller ``min_dist`` values give tighter clusters; larger values spread points out.
   
   Consider standardizing features first if magnitudes vary widely. Assign any
   preprocessed matrix to ``SA.feature_matrix`` before reduction: the current wrapper
@@ -118,8 +118,8 @@ Notes
 - **Reproducibility:** The current reduction wrapper does not expose ``random_state``;
   its UMAP layouts are stochastic. Exact thumbnail coordinates are not guaranteed.
 
-Where this fits
-~~~~~~~~~~~~~~~
+Related analyses
+~~~~~~~~~~~~~~~~
 
 After :ref:`datagen`, use UMAP/PCA to visualize conformational heterogeneity. Reuse
 the same feature matrix for clustering
@@ -130,7 +130,7 @@ contact-pattern dynamics.
 See also
 ~~~~~~~~
 
-- :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
-- :meth:`mdsa_tools.Analysis.systems_analysis.replicates_to_feature_matrix` — feature preparation.
+- :mod:`mdsa_tools.Data_gen_hbond`: build per-frame H-bond adjacency matrices.
+- :mod:`mdsa_tools.Cpptraj_import`: construct feature matrices from cpptraj series tables.
+- :meth:`mdsa_tools.Analysis.systems_analysis.replicates_to_feature_matrix`: feature preparation.
 - :mod:`mdsa_tools.Viz` *(optional)*: ``visualize_reduction`` scatter helper.

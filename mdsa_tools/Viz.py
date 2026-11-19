@@ -571,8 +571,7 @@ def get_Circos_coordinates(residue, gcircle):
 
     Notes
     -----
-    Assumes the arc exists in `gcircle._garc_dict`. This is a convenience
-    wrapper to place chords at arc midpoints for a tidy symmetric look.
+    Assumes the arc exists in `gcircle._garc_dict`. Chords are placed at arc midpoints.
 
     Examples
     --------
@@ -764,10 +763,10 @@ def extract_properties_from_weightsdf(pca_table):
         Unique residue IDs encountered in 'Comparisons', in first-appearance order.
 
     PC1_weight_dict : dict[str, float]
-        Mapping ``'i-j'`` -> PC1 magnitude.
+        PC1 magnitude for each residue pair ``'i-j'``.
 
     PC2_weight_dict : dict[str, float]
-        Mapping ``'i-j'`` -> PC2 magnitude.
+        PC2 magnitude for each residue pair ``'i-j'``.
 
     Notes
     -----
