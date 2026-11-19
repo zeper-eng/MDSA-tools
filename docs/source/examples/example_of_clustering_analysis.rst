@@ -8,13 +8,13 @@ from previously saved H-bond adjacency stacks and run **K-means** across a range
 of :math:`K`. Then generate low-dimensional embeddings (``PCA`` or ``UMAP``) and,
 optionally, perform a second clustering pass directly in embedding space.
 
-What you get
-------------
+Outputs
+-------
 - A :class:`~mdsa_tools.Analysis.systems_analysis` instance bound to your systems.
 - Per-K label arrays saved to disk as ``kluster_labels_{K}clust.npy`` plus
   elbow/silhouette score plots and the **optimal K** by each criterion.
 - 2D embedding figures (colored by cluster labels) saved to your output folder.
-- Optional **embedding-space** cluster labels for finer structure in PCA/UMAP space.
+- Optional **embedding-space** cluster labels from clustering the PCA/UMAP coordinates.
 
 Quickstart
 ----------
@@ -105,11 +105,9 @@ Notes
 - **Embedding clustering:** The optional sweep clusters all supplied coordinates
   together and saves centers in that same 2-D space for :ref:`cohesion_density`.
   ``cluster_embeddingspace`` is deprecated and splits coordinates into equal groups.
-- **Reproducibility:** Keep inputs/figures in versioned folders so reruns are trivial
-  when preprocessing changes.
 
-Where this fits
----------------
+Related analyses
+----------------
 - Generate adjacency arrays with :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`
   (or initialize from cpptraj features as in :ref:`cpptraj_hbond_import`), then run clustering here.
 - After clustering:
@@ -117,8 +115,8 @@ Where this fits
 
 See also
 --------
-- :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
-- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans` — K-sweep with elbow/silhouette.
-- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations` — PCA/UMAP embeddings.
-- :func:`mdsa_tools.Viz.visualize_reduction` — plot embedding coordinates and frame labels.
+- :mod:`mdsa_tools.Data_gen_hbond`: build per-frame H-bond adjacency matrices.
+- :mod:`mdsa_tools.Cpptraj_import`: construct feature matrices from cpptraj series tables.
+- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans`: K-sweep with elbow/silhouette.
+- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations`: PCA/UMAP embeddings.
+- :func:`mdsa_tools.Viz.visualize_reduction`: plot embedding coordinates and frame labels.

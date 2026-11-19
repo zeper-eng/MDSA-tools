@@ -26,7 +26,7 @@ import mdtraj as md
 from typing import Tuple, Dict
 
 class cpptraj_hbond_import():
-    '''Lightweight loader for cpptraj hydrogen-bond (series) output.
+    '''Load cpptraj hydrogen-bond (series) output.
 
     Init takes the filepath to the desired data file, the associated topology, and residue labels.
     After construction, the header is parsed to determine residue–residue index
@@ -205,7 +205,7 @@ class cpptraj_hbond_import():
         return edge_table
     
     def lookup_table_from_edgelist(self,edge_list_template=None):
-        '''Build a fast ``(i, j) → row`` lookup for the edge template.
+        '''Build a lookup from residue pairs ``(i, j)`` to edge-template row indices.
 
         Parameters
         ----------

@@ -39,8 +39,8 @@ class subdomain_explorations:
 
     Notes
     -----
-    Intentionally lightweight: common artifacts are stashed so you don’t
-    have to pass them to every call.
+    Labels, centers, coordinates, and frame counts are stored on the object
+    and used when no overrides are supplied.
     """
 
     def __init__(self, labels=None, centers=None, reduced_coordinates=None, frame_scale=None):
@@ -122,7 +122,7 @@ class subdomain_explorations:
         -----
         - Replicates with no frames left at the window start contribute nothing.
         - Windows never cross replicate boundaries.
-        - Handy for checking “settling”/drift of clusters over time.
+        - Shows changes in cluster cohesion over time.
         """
         if reduced_coordinates is None:
             reduced_coordinates = self.reduced_coordinates
@@ -187,8 +187,7 @@ class subdomain_explorations:
 
         Notes
         -----
-        Complements the sliding-window view—asks whether cohesion improves
-        as you toss early frames.
+        Shows how cohesion changes as early frames are removed.
         """
         if reduced_coordinates is None:
             reduced_coordinates = self.reduced_coordinates

@@ -2,3 +2,20 @@ Manuscript_JCIM/
 Outputs/adk_test/
 Outputs/adk_full_transition/
 push.sh
+
+# Generated Python and test files
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+/build/
+/dist/
+
+# Generated documentation
+/docs/_build/
+/docs/build/
+/docs/source/_build/
+.doctrees/

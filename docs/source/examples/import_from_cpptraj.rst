@@ -1,14 +1,14 @@
 .. _cpptraj_hbond_import:
 
-cpptraj (series) → residue-pair H-bond features
-==================================================
+Residue-pair H-bond features from cpptraj series
+==============================================
 
 Use :class:`mdsa_tools.Cpptraj_import.cpptraj_hbond_import` to parse a cpptraj
 ``hbond ... series uuseries <file>`` table into residue-pair feature matrices
 compatible with the rest of the pipeline.
 
-What you get
-------------
+Outputs
+-------
 - Parsed residue index pairs in column order (``loader.residuelevel_indices``).
 - The raw series matrix of shape ``(n_frames, n_pairs)`` (``loader.data``).
 - A feature matrix ``(n_frames, n_res*(n_res-1)//2)`` via
@@ -16,8 +16,8 @@ What you get
 
 Quickstart
 ----------
-Minimal example using a topology readable by MDTraj (e.g., AMBER ``.prmtop``) and a
-cpptraj ``series`` table. If you’re unfamiliar with generating these, see :ref:`datagen`.
+Minimal example using a topology readable by MDTraj with residue numbering matching
+the cpptraj ``series`` table. If you’re unfamiliar with generating these, see :ref:`datagen`.
 
 **1) Create the `series` table with cpptraj**
 
@@ -45,7 +45,7 @@ Run with:
    import os
 
    series_path = "/path/to/hbonds.dat"
-   topology_path = "/path/to/system.prmtop"
+   topology_path = "/path/to/system.pdb"  # same system, retaining the series residue numbers
 
    # residue labels in topology order; adjust for your series table and topology
    res_of_interest = [95, 230, 232, 234, 235, 236, 237, 238,
@@ -81,6 +81,11 @@ Notes
   header residue label once, in the selected topology's residue order. Check that
   these labels agree with the topology's ``resSeq`` values. Use at least two
   residues and a table with at least one series column and one frame.
+- **Numbering:** CPPTRAJ's usual residue labels start at 1, while MDTraj loads
+  AMBER ``.prmtop`` residues with ``resSeq`` starting at 0. The current importer
+  does not reconcile this offset. The Python example uses a matching PDB topology
+  retaining the series residue numbers; check its residue order and labels before
+  importing. ``TrajectoryProcessor.one_indexed`` does not apply to this importer.
 - ``loader.data`` may be 1D or scalar for a single column or frame; the reshape
   above restores the 2D input required by ``iterate_frames``.
 - Features represent unordered residue pairs in upper-triangle order, without a
@@ -88,14 +93,14 @@ Notes
 - Reject same-residue header pairs before conversion: the current importer maps
   them to the final feature column rather than excluding them.
 
-Where this fits
----------------
+Related analyses
+----------------
 - Pass the features and matching residue labels to the precomputed-feature
   arguments of :class:`mdsa_tools.Analysis.systems_analysis`, as above. The
   feature matrix is ready for analysis; do not call ``replicates_to_feature_matrix``.
 
 See also
 --------
-- :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond matrices from trajectories.
-- :mod:`mdsa_tools.Cpptraj_import` — parse cpptraj ``series`` tables.
-- :class:`mdsa_tools.Analysis.systems_analysis` — downstream feature building and PCA.
+- :mod:`mdsa_tools.Data_gen_hbond`: build per-frame H-bond matrices from trajectories.
+- :mod:`mdsa_tools.Cpptraj_import`: parse cpptraj ``series`` tables.
+- :class:`mdsa_tools.Analysis.systems_analysis`: downstream feature building and PCA.

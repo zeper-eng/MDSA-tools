@@ -3,14 +3,16 @@
 Replicate maps (discrete H-bond labels)
 =======================================
 
-Use :class:`mdsa_tools.Analysis.systems_analysis` to bind previously saved H-bond adjacency arrays, then pull per-frame, discrete H-bond **labels** for specific residue pairs. Finally, plot replicate maps with :func:`mdsa_tools.Viz.replicatemap_from_labels` to compare label dynamics across frames/replicates.
+Load saved H-bond adjacency arrays with :class:`mdsa_tools.Analysis.systems_analysis`
+and extract per-frame counts for the residue pairs of interest. Plot them with
+:func:`mdsa_tools.Viz.replicatemap_from_labels` to compare counts across frames and replicates.
 
-What you get
-------------
+Outputs
+-------
 
 - A :class:`~mdsa_tools.Analysis.systems_analysis` instance bound to your systems.
 - Per-frame integer labels (or counts/states) for the requested residue pairs.
-- Replicate map images saved to disk—useful for quick visual comparisons across replicates and time windows.
+- Saved replicate maps for comparing replicates and time windows.
 
 Quickstart
 ----------
@@ -98,8 +100,8 @@ Notes
 - **Saving:** :func:`~mdsa_tools.Viz.replicatemap_from_labels` writes ``savepath + "_replicate_map.png"``; ensure the directory exists.
 - **Manuscript annotations:** The BRAKE-ON/OFF labels in the manuscript figure were added manually after plotting.
 
-Where this fits
----------------
+Related analyses
+----------------
 
 - Generate the adjacency arrays with :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor`, then pass them here. The cpptraj importer returns feature vectors rather than the adjacency stacks required by ``extract_hbond_values``.
 - After inspecting replicate maps, you can:
@@ -110,7 +112,7 @@ Where this fits
 See also
 --------
 
-- :mod:`mdsa_tools.Data_gen_hbond` — build per-frame H-bond adjacency matrices.
-- :mod:`mdsa_tools.Cpptraj_import` — construct feature matrices from cpptraj series tables.
-- :meth:`mdsa_tools.Analysis.systems_analysis.extract_hbond_values` — pull per-frame labels/counts for residue pairs.
-- :func:`mdsa_tools.Viz.replicatemap_from_labels` — render replicate maps from discrete label sequences.
+- :mod:`mdsa_tools.Data_gen_hbond`: build per-frame H-bond adjacency matrices.
+- :mod:`mdsa_tools.Cpptraj_import`: construct feature matrices from cpptraj series tables.
+- :meth:`mdsa_tools.Analysis.systems_analysis.extract_hbond_values`: pull per-frame labels/counts for residue pairs.
+- :func:`mdsa_tools.Viz.replicatemap_from_labels`: render replicate maps from discrete label sequences.

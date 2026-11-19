@@ -4,15 +4,14 @@ Contours on PCA/UMAP embeddings
 ===============================
 
 Use :func:`mdsa_tools.Viz.contour_embedding_space` to render a **density contour map**
-over 2-D embedding coordinates (from PCA or UMAP). This is handy for spotting
-high-density basins and comparing to your K-means labels when identifying potential
-candidate states.
+over 2-D embedding coordinates (from PCA or UMAP). Compare high-density regions
+with your K-means labels when identifying potential candidate states.
 
-What you get
-------------
+Outputs
+-------
 - A high-resolution ``.png`` (or any Matplotlib-supported format) with filled contours.
 - Optional title/axis labels and grid toggles.
-- Simple knobs for contour detail (``levels``) and smoothness (``bw_adjust``).
+- Control contour detail with ``levels`` and smoothness with ``bw_adjust``.
 
 Quickstart
 ----------
@@ -44,7 +43,7 @@ the coordinates to ``.npy`` (shape ``(n_samples, 2)``).
        embeddingspace_coordinates=E,
        levels=12,            # more/less contour bands
        thresh=0.0,           # >0 to clip ultra-low-density fringes
-       bw_adjust=0.6,        # larger -> smoother; smaller -> sharper
+       bw_adjust=0.6,        # larger values give smoother contours; smaller values give sharper contours
        title="PCA density (PC1 vs PC2)",
        xlabel="PC1",
        ylabel="PC2",
@@ -56,7 +55,7 @@ Notes
 -----
 - **Input shape:** pass a ``(n_samples, 2)`` array (columns = the two embedding axes).
 - **Smoothing:** ``bw_adjust`` scales Seaborn’s KDE bandwidth. Values ``0.4–0.8`` are
-  a good starting range; increase if your plot looks choppy.
+  a starting range; increase for smoother contours.
 - **Clipping:** raise ``thresh`` (e.g., ``0.05``) to suppress faint outer rings.
 - **File type:** the extension of ``outfile_path`` controls the format (``.png``,
   ``.pdf``, ``.svg``, …).
@@ -65,6 +64,6 @@ Notes
 
 See also
 --------
-- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations` — produce 2-D PCA/UMAP.
-- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans` — pass embedding coordinates via ``data`` to label points in that space.
-- :mod:`mdsa_tools.Viz` — additional plotting helpers.
+- :meth:`mdsa_tools.Analysis.systems_analysis.reduce_systems_representations`: produce 2-D PCA/UMAP.
+- :meth:`mdsa_tools.Analysis.systems_analysis.perform_kmeans`: pass embedding coordinates via ``data`` to label points in that space.
+- :mod:`mdsa_tools.Viz`: additional plotting helpers.
