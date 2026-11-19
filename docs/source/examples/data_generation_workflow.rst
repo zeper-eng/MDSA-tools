@@ -1,6 +1,6 @@
 .. _datagen:
 
-Data generation (H-bond matrices)
+Data generation
 =================================
 
 Use :class:`mdsa_tools.Data_gen_hbond.TrajectoryProcessor` to turn trajectories
