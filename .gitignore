@@ -19,3 +19,11 @@ htmlcov/
 /docs/build/
 /docs/source/_build/
 .doctrees/
+
+# Generated files at repository root
+/*.npy
+/*.png
+/*.csv
+
+# Generated packaging metadata
+MDSA_tools.egg-info/
