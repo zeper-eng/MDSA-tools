@@ -18,7 +18,7 @@ mdsa_tools.Data_gen_hbond.TrajectoryProcessor.create_system_representations : Bu
 
 '''
 
-
+from scipy.stats import gaussian_kde
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -869,10 +869,15 @@ def visualize_reduction(embedding_coordinates,
                         cbar_label=None,
                         gridvisible=False,
                         color_palette=None,
-                        dpi=600):
+                        dpi=600,
+                        ax=None,
+                        show_colorbar=True,
+                        norm=None,
+                        global_colorbar=False,
+                        global_colorbar_ticks=None):
     """
-    Plot a 2-D embedding (e.g., PCA/UMAP) as a scatter with optional coloring and colorbar,
-    and save the figure to disk.
+    Plot a 2-D embedding (e.g., PCA/UMAP) as a scatter with optional
+    coloring, colorbars, and support for multi-panel figures.
 
     Parameters
     ----------
@@ -885,75 +890,104 @@ def visualize_reduction(embedding_coordinates,
 
     color_mappings : array-like of shape (n_samples,) or None, default=None
         Numeric values used to color points.
-        - With `cbar_type='discrete'` and < 250 unique values, a discrete
-          colorbar is drawn.
-        - With `cbar_type='continous'` and > 250 unique values, a continuous
-          colorbar is drawn.
-        - If None, points are colored by their index (0..n_samples-1)
-          with a continuous colorbar.
+        - With 'discrete' and < 250 unique values, discrete coloring
+          is applied.
+        - With 'continous' and > 250 unique values, continuous coloring
+          is applied.
+        - If None, points are colored by their index (0..n_samples-1).
         - Other combinations do not draw points.
 
     savepath : str, default=os.getcwd()
-        Full output path **including filename**. Matplotlib adds its default
-        extension if omitted. The figure is saved at `dpi`.
+        Full output path including filename. Matplotlib adds its default
+        extension if omitted. Only used when ax is None.
 
     title : str or None, default=None
-        Figure title.
+        Figure title. If None, the existing title is unchanged.
 
     cmap : str or matplotlib.colors.Colormap or sequence or None, default=None
-        Base colormap. If None, uses `cm.magma_r`.
+        Base colormap. If None, uses cm.magma_r.
         If a sequence is passed, it is converted to a Colormap.
-        Discrete colorbars require a Colormap or a sequence.
-        Ignored when `color_palette` is provided.
+        Ignored when color_palette is provided.
 
     axis_one_label : str or None, default=None
-        X-axis label.
+        X-axis label. If None, the existing label is unchanged.
 
     axis_two_label : str or None, default=None
-        Y-axis label.
+        Y-axis label. If None, the existing label is unchanged.
 
     cbar_label : str or None, default=None
-        Colorbar label. If None, discrete colorbars use 'Value'; continuous
-        colorbars are left unlabeled.
+        Colorbar label. If None, individual discrete colorbars use
+        'Value', while continuous and global colorbars are unlabeled.
 
     gridvisible : bool, default=False
         If True, show a background grid.
 
-    color_palette : sequence of color specs or matplotlib.colors.Colormap, default=None
-        User-supplied palette that overrides `cmap`.
-        - With non-empty `color_mappings`: builds a ListedColormap from the sequence.
-        - Otherwise: builds a LinearSegmentedColormap from the sequence.
+    color_palette : sequence of color specs or matplotlib.colors.Colormap or None, default=None
+        User-supplied palette that overrides cmap.
+        - With non-empty color_mappings, builds a ListedColormap.
+        - Otherwise, builds a LinearSegmentedColormap.
         - If a Colormap object is supplied, it is used directly.
 
     dpi : int, default=600
-        Dots-per-inch used for the created figure and when saving.
+        Dots per inch used when creating and saving standalone figures.
+        Also passed to internal tick and colorbar formatting functions.
+
+    ax : matplotlib.axes.Axes or None, default=None
+        Existing axes on which to draw the embedding.
+        If None, creates a standalone figure. If provided, plots on
+        the supplied axes without saving or closing the parent figure.
+
+    show_colorbar : bool, default=True
+        Whether to display an individual colorbar.
+        Ignored when global_colorbar is True.
+
+    norm : matplotlib.colors.Normalize or None, default=None
+        Normalization used to map color values to the colormap.
+        If None, Matplotlib determines the normalization automatically.
+        A shared normalization is required when global_colorbar is True.
+
+    global_colorbar : bool, default=False
+        If True, creates a single horizontal colorbar shared across
+        the axes of the parent figure and suppresses individual
+        colorbars. The global colorbar is created only once per figure.
+        Requires ax and norm to be provided. All participating subplots
+        must use the same colormap and normalization.
+
+    global_colorbar_ticks : array-like or None, default=None
+        Tick locations for the global colorbar. If None, Matplotlib
+        determines the tick locations automatically.
+        Only used when global_colorbar is True.
 
     Returns
     -------
     None
-        Saves the plot to `savepath` and closes the figure.
+        If ax is None, saves the visualization to savepath and closes
+        the figure. Otherwise, modifies the supplied axes in place.
 
     Notes
     -----
-    - Figure size is 16×12 inches, created and saved at `dpi`.
-    - Axes spines are hidden; tick density is coarsened via `set_ticks`.
+    - Standalone figures are created with a size of 16 x 12 inches.
+    - Axes spines are hidden; tick density is coarsened via set_ticks.
+    - All subplot axes should be created before using global_colorbar.
+    - The global colorbar uses the colormap, normalization, ticks,
+      and label supplied during its first creation.
+    - Global colorbars assume consistent color mappings across panels.
+    - When ax is provided, figure layout, saving, and closing are
+      the responsibility of the caller.
     """
-     
-    is_categorical = color_mappings is not None and len(color_mappings) > 0
-    cbar_type=cbar_type if cbar_type is not None else 'discrete'
 
-    
+    is_categorical = color_mappings is not None and len(color_mappings) > 0
+    cbar_type = cbar_type if cbar_type is not None else 'discrete'
 
     # If user supplies a dedicated palette, it overrides cmap
     if color_palette is not None:
         cmap = _as_colormap(color_palette, is_categorical)
-    # Back-compat: if user passed a list/tuple/ndarray to `cmap`, make it a proper Colormap
+    # Back-compat: if user passed a list/tuple/ndarray to cmap, make it a proper Colormap
     elif isinstance(cmap, (list, tuple, np.ndarray)):
         cmap = _as_colormap(cmap, is_categorical)
-    #no colormap?
+    # No colormap?
     elif cmap is None:
         cmap = cm.magma_r
-
 
     labels_font_dict = {
         'family': 'monospace',
@@ -963,43 +997,91 @@ def visualize_reduction(embedding_coordinates,
         'color': 'black',
     }
 
-    fig = plt.figure(figsize=(16, 12), dpi=dpi)
-    ax = plt.gca()
+    if global_colorbar and (ax is None or norm is None):
+        raise ValueError("Global colorbars require ax and a shared norm.")
+
+    standalone = ax is None
+
+    if standalone:
+        fig, ax = plt.subplots(figsize=(16, 12), dpi=dpi)
+
+    plt.sca(ax)
+    scatter = None
 
     if color_mappings is not None:
         if cbar_type == 'discrete' and len(np.unique(color_mappings)) < 250:
             scatter = ax.scatter(embedding_coordinates[:, 0], embedding_coordinates[:, 1],
-                                c=color_mappings, cmap=cmap, alpha=0.6)
-            add_discrete_colorbar(scatter, color_mappings, cbar_label, plt.gca(), cmap=cmap, dpi=dpi)
-        
+                                 c=color_mappings, cmap=cmap, norm=norm, alpha=0.6)
+
+            if show_colorbar and not global_colorbar:
+                add_discrete_colorbar(scatter, color_mappings, cbar_label, ax, cmap=cmap, dpi=dpi)
+
         if cbar_type == 'continous' and len(np.unique(color_mappings)) > 250:
             scatter = ax.scatter(embedding_coordinates[:, 0], embedding_coordinates[:, 1],
-                                c=color_mappings, cmap=cmap, alpha=0.6)
-            add_continuous_colorbar(scatter, color_mappings, cbar_label, plt.gca(), cmap=cmap, dpi=dpi)
+                                 c=color_mappings, cmap=cmap, norm=norm, alpha=0.6)
 
-    if color_mappings is None:#default for no colormaps is values
+            if show_colorbar and not global_colorbar:
+                add_continuous_colorbar(scatter, color_mappings, cbar_label, ax, cmap=cmap, dpi=dpi)
+
+    if color_mappings is None:
         if cbar_type == 'discrete':
             print('Too many bins for discrete colormappings, transitioning to continous')
+
         values = np.arange(embedding_coordinates.shape[0])
+
         scatter = ax.scatter(embedding_coordinates[:, 0], embedding_coordinates[:, 1],
-                             c=values, cmap=cmap, alpha=0.6)
-        add_continuous_colorbar(scatter, values, cbar_label, plt.gca(), cmap=cmap, dpi=dpi)
+                             c=values, cmap=cmap, norm=norm, alpha=0.6)
+
+        if show_colorbar and not global_colorbar:
+            add_continuous_colorbar(scatter, values, cbar_label, ax, cmap=cmap, dpi=dpi)
 
     for spine in ax.spines.values():
         spine.set_visible(False)
 
     ax.grid(visible=gridvisible)
-    set_ticks(ax=plt.gca(), dpi=dpi)
-    ax.set_title(title, fontdict=labels_font_dict)
-    ax.set_xlabel(axis_one_label, fontdict=labels_font_dict)
-    ax.set_ylabel(axis_two_label, fontdict=labels_font_dict)
+    set_ticks(ax=ax, dpi=dpi)
+
+    if title is not None:
+        ax.set_title(title, fontdict=labels_font_dict)
+
+    if axis_one_label is not None:
+        ax.set_xlabel(axis_one_label, fontdict=labels_font_dict)
+
+    if axis_two_label is not None:
+        ax.set_ylabel(axis_two_label, fontdict=labels_font_dict)
+
     ax.tick_params(axis='x', colors='black')
     ax.tick_params(axis='y', colors='black')
 
-    plt.tight_layout()
-    plt.savefig(savepath, dpi=dpi)
-    plt.close()
+    # Create a single global colorbar for the parent figure
+    if global_colorbar:
+        fig = ax.figure
+
+        if scatter is None:
+            raise ValueError("No scatter plot available for global colorbar.")
+
+        if not any(a.get_gid() == "mdsa_global_colorbar" for a in fig.axes):
+            cbar = fig.colorbar(
+                scatter,
+                ax=fig.axes.copy(),
+                orientation="horizontal",
+                ticks=global_colorbar_ticks,
+                fraction=0.05,
+                pad=0.08
+            )
+
+            cbar.ax.set_gid("mdsa_global_colorbar")
+
+            if cbar_label is not None:
+                cbar.set_label(cbar_label)
+
+    if standalone:
+        plt.tight_layout()
+        plt.savefig(savepath, dpi=dpi)
+        plt.close()
+
     return
+
 
 # RMSD lineplots
 def rmsd_lineplots(pandasdf=None, title='RMSD plot',
@@ -1098,27 +1180,35 @@ def rmsd_lineplots(pandasdf=None, title='RMSD plot',
     return
 
 # Contour plots
+# Contour plots
 def contour_embedding_space(outfile_path, embeddingspace_coordinates, levels=10, thresh=0, bw_adjust=.5,
-                            title=None, xlabel=None, ylabel=None, gridvisible=False, dpi=600):
+                            title=None, xlabel=None, ylabel=None, gridvisible=False, dpi=600,
+                            free_energy=False, temperature=300, gridsize=200, energy_max=5):
     """
-    Plot a density contour map over 2-D embedding coordinates and save to disk.
+    Plot a density or relative free energy contour map over 2-D embedding
+    coordinates and save to disk.
 
     Parameters
     ----------
     outfile_path : str or None
-        Output path (file name). If None, uses current working directory.
+        Output path including filename.
 
     embeddingspace_coordinates : numpy.ndarray of shape (n_samples, 2)
         The 2-D embedding coordinates (e.g., PCA/UMAP).
 
     levels : int or sequence, default=10
-        Number of contour levels, or explicit iso-proportion levels.
+        Number of contour levels or explicit contour levels.
+        For density plots, sequences represent iso-proportion levels.
+        For free energy plots, sequences represent energy levels
+        in kcal/mol.
 
     thresh : float, default=0
-        Lowest iso-proportion level to draw when `levels` is an integer.
+        Lowest iso-proportion level to draw when levels is an integer.
+        Only used when free_energy is False.
 
     bw_adjust : float, default=0.5
-        Bandwidth adjustment factor for KDE.
+        Bandwidth adjustment factor for Gaussian kernel density estimation.
+        Multiplies the default Scott bandwidth factor.
 
     title : str or None, default=None
         Plot title.
@@ -1130,7 +1220,24 @@ def contour_embedding_space(outfile_path, embeddingspace_coordinates, levels=10,
         Whether to show the background grid.
 
     dpi : int, default=600
-        Dots-per-inch used when saving the figure.
+        Dots per inch used when saving the figure.
+
+    free_energy : bool, default=False
+        If True, transform the estimated probability density into
+        relative free energy using Boltzmann inversion.
+        Otherwise, plot the original probability density contours.
+
+    temperature : float, default=300
+        Absolute temperature in Kelvin. Only used when free_energy
+        is True.
+
+    gridsize : int, default=200
+        Number of evaluation points along each embedding dimension.
+        Only used when free_energy is True.
+
+    energy_max : float, default=5
+        Upper displayed relative free energy in kcal/mol when levels
+        is an integer. Higher values are outside the displayed range.
 
     Returns
     -------
@@ -1139,21 +1246,96 @@ def contour_embedding_space(outfile_path, embeddingspace_coordinates, levels=10,
 
     Notes
     -----
-    Convenience wrapper over `sns.kdeplot` with filled contours and colorbar.
+    - Density contours are generated using sns.kdeplot.
+    - Free energy contours are generated using scipy.stats.gaussian_kde
+      followed by Boltzmann inversion:
+
+          Delta G = -RT ln(rho / rho_max)
+
+      where R is the molar gas constant, T is absolute temperature,
+      rho is the estimated probability density, and rho_max is the
+      maximum estimated density on the evaluation grid.
+    - Relative free energies are reported in kcal/mol and shifted
+      so that the minimum displayed free energy is zero.
+    - Thermodynamic interpretation requires representative equilibrium
+      sampling.
+    - PCA is preferable to nonlinear embeddings such as UMAP for
+      interpreting projected free energy landscapes.
+    - Independently normalized surfaces describe relative free energies
+      within each distribution, not absolute free energy differences
+      between molecular systems.
     """
-    outfile_path = outfile_path if outfile_path is not None else os.getcwd()
+    outfile_path = outfile_path if outfile_path is not None else os.path.join(os.getcwd(), "contour.png")
     gridvisible = gridvisible if gridvisible is not None else False
 
-    sns.kdeplot(
-        x=embeddingspace_coordinates[:, 0],
-        y=embeddingspace_coordinates[:, 1],
-        fill=True,
-        cmap="cividis",
-        levels=levels,
-        thresh=thresh,
-        bw_adjust=bw_adjust,
-        cbar=True
-    )
+    if not free_energy:
+        sns.kdeplot(
+            x=embeddingspace_coordinates[:, 0],
+            y=embeddingspace_coordinates[:, 1],
+            fill=True,
+            cmap="cividis",
+            levels=levels,
+            thresh=thresh,
+            bw_adjust=bw_adjust,
+            cbar=True
+        )
+
+    else:
+        if temperature <= 0:
+            raise ValueError("Temperature must be greater than zero.")
+
+        # Gaussian kernel density estimation
+        kde = gaussian_kde(embeddingspace_coordinates.T)
+        kde.set_bandwidth(kde.factor * bw_adjust)
+
+        # Generate evaluation grid
+        padding = 3 * np.sqrt(np.diag(kde.covariance)) #grab standad deviations of each gaussian and extend plotting region by 3 of them
+
+        x = np.linspace(
+            embeddingspace_coordinates[:, 0].min() - padding[0],
+            embeddingspace_coordinates[:, 0].max() + padding[0],
+            gridsize
+        )
+
+        y = np.linspace(
+            embeddingspace_coordinates[:, 1].min() - padding[1],
+            embeddingspace_coordinates[:, 1].max() + padding[1],
+            gridsize
+        )
+
+        X, Y = np.meshgrid(x, y)
+        positions = np.vstack([X.ravel(), Y.ravel()])
+
+
+
+        # basically all of this is a more numerically stable way of achieving
+        # G = -R * temperature * np.log(density)
+        # G = G - G.min()
+
+
+        # Evaluate log probability density
+        log_density = kde.logpdf(positions).reshape(X.shape)
+
+        # Boltzmann inversion (kcal/mol)
+        # G=-RTlnP+C
+        # The same probability ratio corresponds to different free energy differences at different temperatures
+        R = 0.001987204
+        G = -R * temperature * (log_density - log_density.max())
+
+        # Plot relative free energy
+        # bc ln(a) -ln(b) = ln(a/b)
+        # the above is equivalent to deltaG=-RTln(P/p_max)
+        
+        energy_levels = np.linspace(0, energy_max, levels) if isinstance(levels, int) else levels
+
+        contour = plt.contourf(
+            X, Y, G,
+            levels=energy_levels,
+            cmap="cividis",
+            extend="max"
+        )
+
+        plt.colorbar(contour, label="Relative free energy (kcal/mol)")
 
     ax = plt.gca()
     for spine in ax.spines.values():
