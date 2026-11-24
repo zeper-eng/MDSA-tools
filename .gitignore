@@ -27,3 +27,6 @@ htmlcov/
 
 # Generated packaging metadata
 MDSA_tools.egg-info/
+
+# Manuscript analysis files - local only
+/manuscript_data_availability/
